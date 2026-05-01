@@ -1,0 +1,12 @@
+{
+  "name": "controle-de-gastos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "vercel dev",
+    "check": "node --check app.js && node --check api/state.js && node --check api/import.js && node --check api/export.js && node --check api/transactions.js && node --check api/transactions/[id].js && node --check api/goals/[category].js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -28,8 +28,9 @@ async function supabaseFetch(path, options = {}) {
     throw new Error(details || `Erro no Supabase: ${response.status}`);
   }
 
-  if (response.status === 204) return null;
-  return response.json();
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 async function getState() {
@@ -40,11 +41,11 @@ async function getState() {
 
   return {
     categories: CATEGORIES,
-    transactions: transactions.map((transaction) => ({
+    transactions: (transactions || []).map((transaction) => ({
       ...transaction,
       amount: Number(transaction.amount),
     })),
-    goals: Object.fromEntries(goals.map((goal) => [goal.category, Number(goal.amount)])),
+    goals: Object.fromEntries((goals || []).map((goal) => [goal.category, Number(goal.amount)])),
   };
 }
 

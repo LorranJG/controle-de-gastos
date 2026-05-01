@@ -343,7 +343,9 @@ async function api(path, options = {}) {
     await handleApiError(response);
   }
 
-  return response.status === 204 ? null : response.json();
+  if (response.status === 204) return null;
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function authHeaders() {

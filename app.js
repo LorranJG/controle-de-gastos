@@ -24,6 +24,7 @@ const elements = {
   logoutButton: document.querySelector("#logoutButton"),
   periodStart: document.querySelector("#periodStart"),
   periodEnd: document.querySelector("#periodEnd"),
+  presetButtons: document.querySelectorAll(".preset-button"),
   searchInput: document.querySelector("#searchInput"),
   typeButtons: document.querySelectorAll(".type-card"),
   typeAllTotal: document.querySelector("#typeAllTotal"),
@@ -81,6 +82,7 @@ function bindEvents() {
   elements.clearButton.addEventListener("click", deleteSelectedTransactions);
   elements.periodStart.addEventListener("change", updatePeriod);
   elements.periodEnd.addEventListener("change", updatePeriod);
+  elements.presetButtons.forEach((button) => button.addEventListener("click", applyPresetRange));
   elements.searchInput.addEventListener("input", render);
   elements.typeButtons.forEach((button) => button.addEventListener("click", selectTransactionType));
   elements.confirmImportButton.addEventListener("click", confirmImport);
@@ -210,6 +212,12 @@ function renderImportPreview() {
     value.textContent = currency.format(transaction.amount);
     value.className = transaction.amount >= 0 ? "income" : "expense";
     status.textContent = transaction.duplicate ? "Duplicado" : "Novo";
+    setCellLabel(include, "Importar");
+    setCellLabel(date, "Data");
+    setCellLabel(description, "Descrição");
+    setCellLabel(category, "Categoria");
+    setCellLabel(amount, "Valor");
+    setCellLabel(status, "Status");
 
     include.append(checkbox);
     category.append(select);
@@ -283,6 +291,25 @@ function updatePeriod() {
   localStorage.setItem("periodEnd", elements.periodEnd.value);
   selectedTransactions.clear();
   render();
+}
+
+function applyPresetRange(event) {
+  const now = new Date();
+
+  if (event.currentTarget.dataset.range === "month") {
+    elements.periodStart.value = toInputDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    elements.periodEnd.value = toInputDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  }
+
+  if (event.currentTarget.dataset.range === "30days") {
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const start = new Date(end);
+    start.setDate(start.getDate() - 29);
+    elements.periodStart.value = toInputDate(start);
+    elements.periodEnd.value = toInputDate(end);
+  }
+
+  updatePeriod();
 }
 
 function selectTransactionType(event) {
@@ -442,6 +469,13 @@ function renderTransactions(transactions) {
       await deleteSelectedTransactions();
     });
 
+    setCellLabel(flag, "Flag");
+    setCellLabel(date, "Data");
+    setCellLabel(description, "Descrição");
+    setCellLabel(category, "Categoria");
+    setCellLabel(amount, "Valor");
+    setCellLabel(actions, "Ação");
+
     flag.append(checkbox);
     category.append(select);
     amount.append(value);
@@ -532,6 +566,10 @@ async function handleApiError(response) {
 
 function formatDate(date) {
   return dateFormat.format(new Date(`${date}T00:00:00Z`));
+}
+
+function setCellLabel(cell, label) {
+  cell.dataset.label = label;
 }
 
 function toInputDate(date) {

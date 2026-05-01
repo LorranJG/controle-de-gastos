@@ -22,7 +22,9 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at top left, rgba(0, 121, 107, 0.1), transparent 28%),
+    linear-gradient(180deg, #f7fbfa 0%, var(--bg) 32%);
   color: var(--text);
 }
 
@@ -130,7 +132,8 @@ button.ghost:disabled:hover {
 
 .topbar {
   align-items: center;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   display: flex;
   gap: 1rem;
@@ -180,9 +183,19 @@ button.ghost:disabled:hover {
   align-self: start;
   display: grid;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.1rem;
   position: sticky;
   top: 1rem;
+}
+
+.range-presets {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preset-button {
+  min-height: 42px;
 }
 
 .field {
@@ -273,6 +286,22 @@ select:focus {
   gap: 0.4rem;
   min-height: 96px;
   padding: 1rem;
+}
+
+.metric:first-child {
+  border-top: 3px solid rgba(20, 125, 63, 0.28);
+}
+
+.metric:nth-child(2) {
+  border-top: 3px solid rgba(180, 35, 24, 0.26);
+}
+
+.metric:nth-child(3) {
+  border-top: 3px solid rgba(0, 121, 107, 0.3);
+}
+
+.metric:nth-child(4) {
+  border-top: 3px solid rgba(199, 120, 0, 0.3);
 }
 
 .metric span,
@@ -399,6 +428,10 @@ td input[type="checkbox"] {
   margin-top: 1rem;
 }
 
+.table-card-label {
+  display: none;
+}
+
 .delete-row {
   background: transparent;
   color: var(--danger);
@@ -428,5 +461,106 @@ td input[type="checkbox"] {
 
   .topbar-actions {
     justify-content: start;
+  }
+
+  .topbar-actions > * {
+    flex: 1 1 180px;
+  }
+
+  .range-presets {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    padding: 1rem;
+  }
+
+  .controls,
+  .panel:not(.controls),
+  .metric,
+  .type-card {
+    padding: 0.9rem;
+  }
+
+  .section-title {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody,
+  tr,
+  td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    padding: 0.35rem 0.8rem;
+  }
+
+  td {
+    align-items: center;
+    border-bottom: 0;
+    display: flex;
+    gap: 0.8rem;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+  }
+
+  td::before {
+    color: var(--text);
+    content: attr(data-label);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  td[data-label="Descrição"],
+  td[data-label="Categoria"],
+  td[data-label="Status"] {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  td[data-label="Descrição"]::before,
+  td[data-label="Categoria"]::before,
+  td[data-label="Status"]::before {
+    margin-bottom: 0.1rem;
+  }
+
+  td select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .preview-actions {
+    flex-direction: column;
+  }
+
+  .preview-actions button {
+    width: 100%;
+  }
+
+  .delete-row {
+    padding-left: 0;
+    padding-right: 0;
   }
 }

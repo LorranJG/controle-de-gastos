@@ -7,6 +7,10 @@ let state = {
   goals: {},
 };
 
+let transactionType = "all";
+let pendingImport = [];
+const selectedTransactions = new Set();
+
 const elements = {
   loginScreen: document.querySelector("#loginScreen"),
   loginForm: document.querySelector("#loginForm"),
@@ -18,8 +22,18 @@ const elements = {
   exportButton: document.querySelector("#exportButton"),
   clearButton: document.querySelector("#clearButton"),
   logoutButton: document.querySelector("#logoutButton"),
-  monthFilter: document.querySelector("#monthFilter"),
+  periodStart: document.querySelector("#periodStart"),
+  periodEnd: document.querySelector("#periodEnd"),
   searchInput: document.querySelector("#searchInput"),
+  typeButtons: document.querySelectorAll(".type-card"),
+  typeAllTotal: document.querySelector("#typeAllTotal"),
+  typeIncomeTotal: document.querySelector("#typeIncomeTotal"),
+  typeExpenseTotal: document.querySelector("#typeExpenseTotal"),
+  importPreviewPanel: document.querySelector("#importPreviewPanel"),
+  previewSummary: document.querySelector("#previewSummary"),
+  previewRows: document.querySelector("#previewRows"),
+  confirmImportButton: document.querySelector("#confirmImportButton"),
+  discardImportButton: document.querySelector("#discardImportButton"),
   goalForm: document.querySelector("#goalForm"),
   goalCategory: document.querySelector("#goalCategory"),
   goalAmount: document.querySelector("#goalAmount"),
@@ -40,10 +54,10 @@ const elements = {
 };
 
 async function init() {
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  elements.monthFilter.value = localStorage.getItem("selectedMonth") || currentMonth;
+  setDefaultPeriod();
   elements.manualDate.value = new Date().toISOString().slice(0, 10);
   bindEvents();
+
   if (sessionStorage.getItem("appPassword")) {
     await authenticate();
   } else {
@@ -51,17 +65,26 @@ async function init() {
   }
 }
 
+function setDefaultPeriod() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  elements.periodStart.value = localStorage.getItem("periodStart") || toInputDate(start);
+  elements.periodEnd.value = localStorage.getItem("periodEnd") || toInputDate(end);
+}
+
 function bindEvents() {
   elements.loginForm.addEventListener("submit", login);
   elements.logoutButton.addEventListener("click", logout);
-  elements.statementInput.addEventListener("change", importStatement);
+  elements.statementInput.addEventListener("change", previewStatement);
   elements.exportButton.addEventListener("click", exportData);
-  elements.clearButton.addEventListener("click", clearData);
-  elements.monthFilter.addEventListener("change", () => {
-    localStorage.setItem("selectedMonth", elements.monthFilter.value);
-    render();
-  });
+  elements.clearButton.addEventListener("click", deleteSelectedTransactions);
+  elements.periodStart.addEventListener("change", updatePeriod);
+  elements.periodEnd.addEventListener("change", updatePeriod);
   elements.searchInput.addEventListener("input", render);
+  elements.typeButtons.forEach((button) => button.addEventListener("click", selectTransactionType));
+  elements.confirmImportButton.addEventListener("click", confirmImport);
+  elements.discardImportButton.addEventListener("click", clearImportPreview);
   elements.goalForm.addEventListener("submit", saveGoal);
   elements.transactionForm.addEventListener("submit", addManualTransaction);
 }
@@ -87,6 +110,8 @@ async function authenticate() {
 function logout() {
   sessionStorage.removeItem("appPassword");
   state = { categories: [], transactions: [], goals: {} };
+  pendingImport = [];
+  selectedTransactions.clear();
   showLogin();
 }
 
@@ -120,22 +145,105 @@ function fillCategorySelect(select) {
   }));
 }
 
-async function importStatement(event) {
+async function previewStatement(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   const content = await file.text();
-  const result = await api("/api/import", {
+  const result = await api("/api/preview", {
     method: "POST",
     body: JSON.stringify({ filename: file.name, content }),
   });
 
-  await loadState();
+  pendingImport = result.transactions.map((transaction) => ({
+    ...transaction,
+    selected: !transaction.duplicate,
+  }));
+
+  renderImportPreview();
   event.target.value = "";
+}
+
+function renderImportPreview() {
+  elements.previewRows.replaceChildren();
+  elements.importPreviewPanel.hidden = pendingImport.length === 0;
+
+  if (!pendingImport.length) {
+    elements.previewSummary.textContent = "";
+    return;
+  }
+
+  const selected = pendingImport.filter((item) => item.selected && !item.duplicate).length;
+  const duplicates = pendingImport.filter((item) => item.duplicate).length;
+  elements.previewSummary.textContent = `${selected} selecionados, ${duplicates} duplicados`;
+  elements.confirmImportButton.disabled = selected === 0;
+
+  pendingImport.forEach((transaction, index) => {
+    const row = document.createElement("tr");
+    const include = document.createElement("td");
+    const date = document.createElement("td");
+    const description = document.createElement("td");
+    const category = document.createElement("td");
+    const amount = document.createElement("td");
+    const status = document.createElement("td");
+    const checkbox = document.createElement("input");
+    const select = document.createElement("select");
+    const value = document.createElement("strong");
+
+    checkbox.type = "checkbox";
+    checkbox.checked = transaction.selected;
+    checkbox.disabled = transaction.duplicate;
+    checkbox.addEventListener("change", () => {
+      pendingImport[index].selected = checkbox.checked;
+      renderImportPreview();
+    });
+
+    fillCategorySelect(select);
+    select.value = transaction.category;
+    select.disabled = transaction.duplicate;
+    select.addEventListener("change", () => {
+      pendingImport[index].category = select.value;
+    });
+
+    date.textContent = formatDate(transaction.date);
+    description.textContent = transaction.description;
+    value.textContent = currency.format(transaction.amount);
+    value.className = transaction.amount >= 0 ? "income" : "expense";
+    status.textContent = transaction.duplicate ? "Duplicado" : "Novo";
+
+    include.append(checkbox);
+    category.append(select);
+    amount.append(value);
+    row.append(include, date, description, category, amount, status);
+    elements.previewRows.append(row);
+  });
+}
+
+async function confirmImport() {
+  const transactions = pendingImport
+    .filter((transaction) => transaction.selected && !transaction.duplicate)
+    .map(({ selected, duplicate, ...transaction }) => transaction);
+
+  if (!transactions.length) return;
+
+  const result = await api("/api/import", {
+    method: "POST",
+    body: JSON.stringify({ transactions }),
+  });
+
+  clearImportPreview();
+  await loadState();
 
   if (!result.imported) {
-    alert("Nenhuma movimentação nova encontrada no arquivo.");
+    alert("Nenhuma movimentação nova foi adicionada.");
   }
+}
+
+function clearImportPreview() {
+  pendingImport = [];
+  elements.importPreviewPanel.hidden = true;
+  elements.previewRows.replaceChildren();
+  elements.previewSummary.textContent = "";
 }
 
 async function saveGoal(event) {
@@ -170,20 +278,48 @@ async function addManualTransaction(event) {
   await loadState();
 }
 
+function updatePeriod() {
+  localStorage.setItem("periodStart", elements.periodStart.value);
+  localStorage.setItem("periodEnd", elements.periodEnd.value);
+  selectedTransactions.clear();
+  render();
+}
+
+function selectTransactionType(event) {
+  transactionType = event.currentTarget.dataset.type;
+  elements.typeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.type === transactionType);
+  });
+  selectedTransactions.clear();
+  render();
+}
+
 function render() {
-  const selectedMonth = elements.monthFilter.value;
+  const periodTransactions = transactionsInPeriod(state.transactions);
   const search = elements.searchInput.value.trim().toLowerCase();
-  const transactions = state.transactions
-    .filter((item) => item.date.startsWith(selectedMonth))
+  const transactions = periodTransactions
+    .filter((item) => {
+      if (transactionType === "income") return item.amount > 0;
+      if (transactionType === "expense") return item.amount < 0;
+      return true;
+    })
     .filter((item) => {
       const content = `${item.description} ${item.category} ${item.amount}`.toLowerCase();
       return !search || content.includes(search);
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  renderMetrics(transactions);
-  renderCategories(transactions);
+  renderMetrics(periodTransactions);
+  renderTypeTotals(periodTransactions);
+  renderCategories(periodTransactions);
   renderTransactions(transactions);
+  updateDeleteButton();
+}
+
+function transactionsInPeriod(transactions) {
+  const start = elements.periodStart.value || "0000-01-01";
+  const end = elements.periodEnd.value || "9999-12-31";
+  return transactions.filter((item) => item.date >= start && item.date <= end);
 }
 
 function renderMetrics(transactions) {
@@ -197,6 +333,14 @@ function renderMetrics(transactions) {
   elements.expenseTotal.textContent = currency.format(expenses);
   elements.balanceTotal.textContent = currency.format(balance);
   elements.topCategory.textContent = top ? `${top[0]} (${currency.format(top[1])})` : "-";
+}
+
+function renderTypeTotals(transactions) {
+  const income = sum(transactions.filter((item) => item.amount > 0));
+  const expenses = Math.abs(sum(transactions.filter((item) => item.amount < 0)));
+  elements.typeAllTotal.textContent = currency.format(income - expenses);
+  elements.typeIncomeTotal.textContent = currency.format(income);
+  elements.typeExpenseTotal.textContent = currency.format(expenses);
 }
 
 function renderCategories(transactions) {
@@ -248,7 +392,7 @@ function renderTransactions(transactions) {
   if (!transactions.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     cell.className = "empty";
     cell.textContent = "Nenhuma movimentação encontrada para os filtros atuais.";
     row.append(cell);
@@ -258,16 +402,26 @@ function renderTransactions(transactions) {
 
   transactions.forEach((transaction) => {
     const row = document.createElement("tr");
+    const flag = document.createElement("td");
     const date = document.createElement("td");
     const description = document.createElement("td");
     const category = document.createElement("td");
     const amount = document.createElement("td");
     const actions = document.createElement("td");
+    const checkbox = document.createElement("input");
     const select = document.createElement("select");
     const value = document.createElement("strong");
     const deleteButton = document.createElement("button");
 
-    date.textContent = dateFormat.format(new Date(`${transaction.date}T00:00:00Z`));
+    checkbox.type = "checkbox";
+    checkbox.checked = selectedTransactions.has(transaction.id);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedTransactions.add(transaction.id);
+      else selectedTransactions.delete(transaction.id);
+      updateDeleteButton();
+    });
+
+    date.textContent = formatDate(transaction.date);
     description.textContent = transaction.description;
     fillCategorySelect(select);
     select.value = transaction.category;
@@ -284,16 +438,34 @@ function renderTransactions(transactions) {
     deleteButton.type = "button";
     deleteButton.textContent = "Excluir";
     deleteButton.addEventListener("click", async () => {
-      await api(`/api/transactions/${encodeURIComponent(transaction.id)}`, { method: "DELETE" });
-      await loadState();
+      selectedTransactions.add(transaction.id);
+      await deleteSelectedTransactions();
     });
 
+    flag.append(checkbox);
     category.append(select);
     amount.append(value);
     actions.append(deleteButton);
-    row.append(date, description, category, amount, actions);
+    row.append(flag, date, description, category, amount, actions);
     elements.transactionRows.append(row);
   });
+}
+
+function updateDeleteButton() {
+  const count = selectedTransactions.size;
+  elements.clearButton.disabled = count === 0;
+  elements.clearButton.textContent = count ? `Excluir selecionados (${count})` : "Excluir selecionados";
+}
+
+async function deleteSelectedTransactions() {
+  const ids = [...selectedTransactions];
+  if (!ids.length) return;
+
+  if (!confirm(`Deseja excluir ${ids.length} lançamento(s) selecionado(s)?`)) return;
+
+  await Promise.all(ids.map((id) => api(`/api/transactions/${encodeURIComponent(id)}`, { method: "DELETE" })));
+  selectedTransactions.clear();
+  await loadState();
 }
 
 function expensesByCategory(transactions) {
@@ -310,7 +482,7 @@ function sum(items) {
 }
 
 async function exportData() {
-  let response = await fetch("/api/export", { headers: authHeaders() });
+  const response = await fetch("/api/export", { headers: authHeaders() });
 
   if (!response.ok) {
     await handleApiError(response);
@@ -326,18 +498,12 @@ async function exportData() {
   URL.revokeObjectURL(url);
 }
 
-async function clearData() {
-  if (!confirm("Deseja apagar lançamentos e metas salvos no backend?")) return;
-  await api("/api/state", { method: "DELETE" });
-  await loadState();
-}
-
 async function api(path, options = {}) {
   const request = {
     headers: { "Content-Type": "application/json", ...authHeaders(), ...(options.headers || {}) },
     ...options,
   };
-  let response = await fetch(path, request);
+  const response = await fetch(path, request);
 
   if (!response.ok) {
     await handleApiError(response);
@@ -362,6 +528,17 @@ async function handleApiError(response) {
   const error = await response.json().catch(() => ({ error: "Erro inesperado." }));
   alert(error.error || "Erro inesperado.");
   throw new Error(error.error || response.statusText);
+}
+
+function formatDate(date) {
+  return dateFormat.format(new Date(`${date}T00:00:00Z`));
+}
+
+function toInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 init();

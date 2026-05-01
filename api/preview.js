@@ -11,28 +11,24 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const parsed = Array.isArray(req.body.transactions)
-      ? req.body.transactions
-      : parseStatement(req.body.filename || "", req.body.content || "");
-
+    const parsed = parseStatement(req.body.filename || "", req.body.content || "");
     if (!parsed.length) {
-      res.status(200).json({ imported: 0, ignored: 0 });
+      res.status(200).json({ transactions: [], total: 0, duplicates: 0 });
       return;
     }
 
     const existing = await supabaseFetch(`/transactions?select=id&id=in.(${parsed.map((item) => item.id).join(",")})`);
     const existingIds = new Set((existing || []).map((item) => item.id));
-    const transactions = parsed.filter((item) => !existingIds.has(item.id));
+    const transactions = parsed.map((transaction) => ({
+      ...transaction,
+      duplicate: existingIds.has(transaction.id),
+    }));
 
-    if (transactions.length) {
-      await supabaseFetch("/transactions", {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify(transactions),
-      });
-    }
-
-    res.status(200).json({ imported: transactions.length, ignored: parsed.length - transactions.length });
+    res.status(200).json({
+      transactions,
+      total: transactions.length,
+      duplicates: transactions.filter((transaction) => transaction.duplicate).length,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

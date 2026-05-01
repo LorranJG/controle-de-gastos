@@ -34,7 +34,7 @@
           Importar extrato
         </label>
         <button id="exportButton" type="button">Exportar dados</button>
-        <button id="clearButton" class="ghost" type="button">Limpar</button>
+        <button id="clearButton" class="ghost" type="button" disabled>Excluir selecionados</button>
         <button id="logoutButton" class="ghost" type="button">Sair</button>
       </div>
     </header>
@@ -42,8 +42,13 @@
     <main id="appMain" class="layout app-shell" hidden>
       <section class="panel controls">
         <div class="field">
-          <label for="monthFilter">Mês</label>
-          <input id="monthFilter" type="month" />
+          <label for="periodStart">Período inicial</label>
+          <input id="periodStart" type="date" />
+        </div>
+
+        <div class="field">
+          <label for="periodEnd">Período final</label>
+          <input id="periodEnd" type="date" />
         </div>
 
         <div class="field">
@@ -106,6 +111,47 @@
           </article>
         </div>
 
+        <section class="type-filter" aria-label="Filtro de tipo de movimentação">
+          <button class="type-card active" type="button" data-type="all">
+            <span>Todos</span>
+            <strong id="typeAllTotal">R$ 0,00</strong>
+          </button>
+          <button class="type-card" type="button" data-type="income">
+            <span>Entradas</span>
+            <strong id="typeIncomeTotal">R$ 0,00</strong>
+          </button>
+          <button class="type-card" type="button" data-type="expense">
+            <span>Saídas</span>
+            <strong id="typeExpenseTotal">R$ 0,00</strong>
+          </button>
+        </section>
+
+        <section id="importPreviewPanel" class="panel" hidden>
+          <div class="section-title">
+            <h2>Validar extrato</h2>
+            <span id="previewSummary"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Importar</th>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="previewRows"></tbody>
+            </table>
+          </div>
+          <div class="preview-actions">
+            <button id="confirmImportButton" type="button">Adicionar selecionados</button>
+            <button id="discardImportButton" class="ghost" type="button">Limpar prévia</button>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="section-title">
             <h2>Metas e categorias</h2>
@@ -123,6 +169,7 @@
             <table>
               <thead>
                 <tr>
+                  <th>Flag</th>
                   <th>Data</th>
                   <th>Descrição</th>
                   <th>Categoria</th>

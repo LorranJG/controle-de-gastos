@@ -51,11 +51,13 @@ http://localhost:3000
 ## Funcionalidades
 
 - Importação de extratos `.csv`, `.ofx` ou `.txt`.
+- Validação do extrato antes de gravar no banco.
 - Classificação automática por palavras-chave nas APIs.
 - Edição manual de categoria por lançamento.
 - Cadastro de metas mensais por categoria.
-- Filtro por mês e busca por descrição, categoria ou valor.
+- Filtro por período, tipo de movimentação e busca por descrição, categoria ou valor.
 - Lançamentos manuais.
+- Exclusão de lançamentos apenas por itens marcados na coluna `Flag`.
 - Dados salvos no Supabase.
 - Exportação dos dados em JSON.
 

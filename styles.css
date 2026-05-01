@@ -64,6 +64,20 @@ button.ghost {
   color: var(--text);
 }
 
+button:disabled,
+button:disabled:hover {
+  background: #d7e0e4;
+  color: #7a8994;
+  cursor: not-allowed;
+  transform: none;
+}
+
+button.ghost:disabled,
+button.ghost:disabled:hover {
+  background: transparent;
+  color: #9aa7b0;
+}
+
 .file-button input {
   display: none;
 }
@@ -219,6 +233,41 @@ select:focus {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.type-filter {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.type-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  text-align: left;
+}
+
+.type-card:hover,
+.type-card.active {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.13), var(--shadow);
+  color: var(--text);
+}
+
+.type-card span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.type-card strong {
+  font-size: 1.2rem;
+}
+
 .metric {
   display: grid;
   gap: 0.4rem;
@@ -337,6 +386,19 @@ td select {
   padding: 0.4rem;
 }
 
+td input[type="checkbox"] {
+  min-height: auto;
+  width: auto;
+}
+
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 .delete-row {
   background: transparent;
   color: var(--danger);
@@ -355,7 +417,8 @@ td select {
   }
 
   .layout,
-  .cards {
+  .cards,
+  .type-filter {
     grid-template-columns: 1fr;
   }
 

@@ -18,6 +18,7 @@ function parseCsv(content) {
     date: row[indexes.date],
     description: row[indexes.description],
     amount: row[indexes.amount],
+    source: "import",
   })).filter(Boolean);
 }
 
@@ -77,6 +78,7 @@ function parseOfx(text) {
     date: readOfxTag(block, "DTPOSTED"),
     description: readOfxTag(block, "MEMO") || readOfxTag(block, "NAME") || readOfxTag(block, "FITID"),
     amount: readOfxTag(block, "TRNAMT"),
+    source: "import",
   })).filter(Boolean);
 }
 
@@ -87,19 +89,37 @@ function readOfxTag(block, tag) {
 
 function normalizeTransaction(input) {
   const date = parseDate(input.date);
-  const amount = parseAmount(input.amount);
-  const description = cleanText(input.description || "Sem descrição");
+  const rawAmount = parseAmount(input.amount);
+  const movementType = input.movement_type || input.movementType || inferMovementType(rawAmount);
+  const amount = normalizeAmountByType(rawAmount, movementType);
+  const description = cleanText(input.description || "Sem descricao");
   const category = input.category || suggestCategory(description, amount);
 
-  if (!date || !Number.isFinite(amount)) return null;
+  if (!date || !Number.isFinite(amount) || !movementType) return null;
 
   return {
-    id: makeId(date, description, amount),
+    id: input.id || makeId(date, description, amount),
     date,
     description,
     amount,
     category: CATEGORIES.includes(category) ? category : "Outros",
+    movement_type: movementType,
+    payment_method: cleanText(input.payment_method || input.paymentMethod || ""),
+    entered_by: cleanText(input.entered_by || input.enteredBy || ""),
+    source: input.source || "manual",
+    import_batch_id: input.import_batch_id || input.importBatchId || "",
   };
+}
+
+function inferMovementType(amount) {
+  if (!Number.isFinite(amount)) return "";
+  return amount >= 0 ? "income" : "expense";
+}
+
+function normalizeAmountByType(amount, movementType) {
+  if (!Number.isFinite(amount)) return Number.NaN;
+  const absolute = Math.abs(amount);
+  return movementType === "expense" ? -absolute : absolute;
 }
 
 function parseDate(value = "") {
@@ -144,4 +164,9 @@ function makeId(date, description, amount) {
   return crypto.createHash("sha1").update(`${date}|${description.toLowerCase()}|${amount.toFixed(2)}`).digest("hex").slice(0, 16);
 }
 
-module.exports = { normalizeTransaction, parseStatement };
+module.exports = {
+  inferMovementType,
+  normalizeAmountByType,
+  normalizeTransaction,
+  parseStatement,
+};

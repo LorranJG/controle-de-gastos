@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">Acesso privado</p>
           <h1>Controle de Gastos</h1>
-          <p>Entre com a senha compartilhada para acessar lançamentos, metas e importação de extratos.</p>
+          <p>Entre com a senha compartilhada para acessar dashboard, movimentacoes, importacoes e metas.</p>
         </div>
         <div class="field">
           <label for="loginPassword">Senha</label>
@@ -23,171 +23,381 @@
       </form>
     </section>
 
-    <header id="appHeader" class="topbar app-shell" hidden>
-      <div>
-        <h1>Controle de Gastos</h1>
-        <p>Importe extratos, categorize despesas e acompanhe suas metas mensais.</p>
+    <div id="appShell" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">Controle</p>
+          <h1>Financeiro</h1>
+          <span>Visao unificada para duas pessoas.</span>
+        </div>
+
+        <nav class="nav-menu" aria-label="Navegacao principal">
+          <button class="nav-link active" type="button" data-page="dashboard">Dashboard</button>
+          <button class="nav-link" type="button" data-page="transactions">Movimentacoes</button>
+          <button class="nav-link" type="button" data-page="goals">Metas</button>
+          <button class="nav-link" type="button" data-page="import">Importar gastos</button>
+          <button class="nav-link" type="button" data-page="settings">Configuracoes</button>
+        </nav>
+      </aside>
+
+      <div class="main-shell">
+        <header class="topbar">
+          <div>
+            <p id="pageEyebrow" class="eyebrow">Visao geral</p>
+            <h2 id="pageTitle">Dashboard</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="logoutButton" class="ghost" type="button">Sair</button>
+          </div>
+        </header>
+
+        <nav class="mobile-nav" aria-label="Navegacao mobile">
+          <button class="nav-link active" type="button" data-page="dashboard">Dashboard</button>
+          <button class="nav-link" type="button" data-page="transactions">Movimentacoes</button>
+          <button class="nav-link" type="button" data-page="goals">Metas</button>
+          <button class="nav-link" type="button" data-page="import">Importar</button>
+          <button class="nav-link" type="button" data-page="settings">Configuracoes</button>
+        </nav>
+
+        <main class="page-stack">
+          <section id="page-dashboard" class="page active">
+            <div class="cards">
+              <article class="metric">
+                <span>Receitas</span>
+                <strong id="incomeTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Gastos</span>
+                <strong id="expenseTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Saldo</span>
+                <strong id="balanceTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Maior categoria</span>
+                <strong id="topCategory">-</strong>
+              </article>
+            </div>
+
+            <section class="type-filter" aria-label="Filtro de tipo de movimentacao">
+              <button class="type-card active" type="button" data-type="all">
+                <span>Todos</span>
+                <strong id="typeAllTotal">R$ 0,00</strong>
+              </button>
+              <button class="type-card" type="button" data-type="income">
+                <span>Entradas</span>
+                <strong id="typeIncomeTotal">R$ 0,00</strong>
+              </button>
+              <button class="type-card" type="button" data-type="expense">
+                <span>Saidas</span>
+                <strong id="typeExpenseTotal">R$ 0,00</strong>
+              </button>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Metas por categoria</h3>
+                <span id="goalSummary"></span>
+              </div>
+              <div id="categoryList" class="category-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Metas nomeadas</h3>
+                <span id="namedGoalSummary"></span>
+              </div>
+              <div id="dashboardNamedGoals" class="named-goal-grid"></div>
+            </section>
+          </section>
+
+          <section id="page-transactions" class="page">
+            <div class="panel filters-panel">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="periodStart">Periodo inicial</label>
+                  <input id="periodStart" type="date" />
+                </div>
+                <div class="field">
+                  <label for="periodEnd">Periodo final</label>
+                  <input id="periodEnd" type="date" />
+                </div>
+                <div class="field">
+                  <label for="filterCategory">Categoria</label>
+                  <select id="filterCategory"></select>
+                </div>
+                <div class="field">
+                  <label for="filterEnteredBy">Pessoa que lancou</label>
+                  <select id="filterEnteredBy"></select>
+                </div>
+                <div class="field">
+                  <label for="filterPaymentMethod">Forma de pagamento</label>
+                  <select id="filterPaymentMethod"></select>
+                </div>
+                <div class="field">
+                  <label for="searchInput">Buscar</label>
+                  <input id="searchInput" type="search" placeholder="Descricao, categoria, pessoa ou valor" />
+                </div>
+              </div>
+
+              <div class="toolbar-row">
+                <div class="range-presets" aria-label="Atalhos de periodo">
+                  <button class="ghost preset-button" type="button" data-range="month">Mes atual</button>
+                  <button class="ghost preset-button" type="button" data-range="30days">30 dias</button>
+                </div>
+                <button id="clearButton" class="ghost" type="button" disabled>Excluir selecionados</button>
+              </div>
+            </div>
+
+            <section class="type-filter" aria-label="Filtro de tipo de movimentacao">
+              <button class="type-card active" type="button" data-type="all">
+                <span>Todos</span>
+                <strong id="typeAllTotalDuplicate">R$ 0,00</strong>
+              </button>
+              <button class="type-card" type="button" data-type="income">
+                <span>Entradas</span>
+                <strong id="typeIncomeTotalDuplicate">R$ 0,00</strong>
+              </button>
+              <button class="type-card" type="button" data-type="expense">
+                <span>Saidas</span>
+                <strong id="typeExpenseTotalDuplicate">R$ 0,00</strong>
+              </button>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Nova movimentacao</h3>
+                <span>Cadastro manual</span>
+              </div>
+              <form id="transactionForm" class="field-grid">
+                <div class="field">
+                  <label for="manualDate">Data</label>
+                  <input id="manualDate" type="date" required />
+                </div>
+                <div class="field">
+                  <label for="manualType">Tipo</label>
+                  <select id="manualType" required>
+                    <option value="expense">Saida</option>
+                    <option value="income">Entrada</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="manualCategory">Categoria</label>
+                  <select id="manualCategory" required></select>
+                </div>
+                <div class="field">
+                  <label for="manualAmount">Valor</label>
+                  <input id="manualAmount" type="number" step="0.01" min="0" required placeholder="0,00" />
+                </div>
+                <div class="field field-span-2">
+                  <label for="manualDescription">Descricao</label>
+                  <input id="manualDescription" type="text" required placeholder="Ex: Mercado" />
+                </div>
+                <div class="field">
+                  <label for="manualPaymentMethod">Forma de pagamento</label>
+                  <input id="manualPaymentMethod" list="paymentMethodsList" type="text" required placeholder="Ex: Cartao" />
+                </div>
+                <div class="field">
+                  <label for="manualEnteredBy">Pessoa que lancou</label>
+                  <input id="manualEnteredBy" list="enteredByList" type="text" required placeholder="Ex: Lorran" />
+                </div>
+                <div class="form-actions field-span-2">
+                  <button type="submit">Adicionar movimentacao</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Movimentacoes</h3>
+                <span id="transactionCount"></span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Flag</th>
+                      <th>Data</th>
+                      <th>Tipo</th>
+                      <th>Categoria</th>
+                      <th>Descricao</th>
+                      <th>Valor</th>
+                      <th>Forma de pagamento</th>
+                      <th>Pessoa que lancou</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="transactionRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="page-goals" class="page">
+            <section class="panel">
+              <div class="section-title">
+                <h3>Nova meta</h3>
+                <span>Metas independentes das categorias</span>
+              </div>
+              <form id="namedGoalForm" class="field-grid">
+                <input id="namedGoalId" type="hidden" />
+                <div class="field field-span-2">
+                  <label for="namedGoalName">Nome da meta</label>
+                  <input id="namedGoalName" type="text" required placeholder="Ex: Viagem de ferias" />
+                </div>
+                <div class="field">
+                  <label for="namedGoalTarget">Valor desejado</label>
+                  <input id="namedGoalTarget" type="number" min="0" step="0.01" required />
+                </div>
+                <div class="field">
+                  <label for="namedGoalCurrent">Valor atual</label>
+                  <input id="namedGoalCurrent" type="number" min="0" step="0.01" required />
+                </div>
+                <div class="field">
+                  <label for="namedGoalDeadline">Prazo</label>
+                  <input id="namedGoalDeadline" type="date" />
+                </div>
+                <div class="field field-span-2">
+                  <label for="namedGoalNotes">Observacao</label>
+                  <textarea id="namedGoalNotes" rows="4" placeholder="Anotacoes sobre a meta"></textarea>
+                </div>
+                <div class="form-actions field-span-2">
+                  <button type="submit">Salvar meta</button>
+                  <button id="cancelNamedGoalEdit" class="ghost" type="button" hidden>Cancelar edicao</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Metas cadastradas</h3>
+                <span id="goalsPageSummary"></span>
+              </div>
+              <div id="namedGoalList" class="named-goal-grid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Metas por categoria</h3>
+                <span>Compatibilidade com o dashboard</span>
+              </div>
+              <form id="goalForm" class="field-grid">
+                <div class="field">
+                  <label for="goalCategory">Categoria</label>
+                  <select id="goalCategory"></select>
+                </div>
+                <div class="field">
+                  <label for="goalAmount">Valor da meta</label>
+                  <input id="goalAmount" type="number" min="0" step="0.01" placeholder="0,00" />
+                </div>
+                <div class="form-actions field-span-2">
+                  <button type="submit">Salvar meta por categoria</button>
+                </div>
+              </form>
+            </section>
+          </section>
+
+          <section id="page-import" class="page">
+            <section class="panel">
+              <div class="section-title">
+                <h3>Importar gastos</h3>
+                <span>Revise antes de gravar</span>
+              </div>
+              <div class="field-grid">
+                <div class="field field-span-2">
+                  <label class="file-button import-button">
+                    <input id="statementInput" type="file" accept=".csv,.ofx,.txt" />
+                    Selecionar extrato
+                  </label>
+                </div>
+                <div class="field">
+                  <label for="importEnteredBy">Responsavel pela importacao</label>
+                  <input id="importEnteredBy" list="enteredByList" type="text" required placeholder="Quem esta importando" />
+                </div>
+                <div class="field">
+                  <label for="importPaymentMethod">Forma de pagamento padrao</label>
+                  <input id="importPaymentMethod" list="paymentMethodsList" type="text" placeholder="Opcional para preencher a previa" />
+                </div>
+              </div>
+            </section>
+
+            <section id="importPreviewPanel" class="panel" hidden>
+              <div class="section-title">
+                <h3>Validar extrato</h3>
+                <span id="previewSummary"></span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Importar</th>
+                      <th>Data</th>
+                      <th>Tipo</th>
+                      <th>Categoria</th>
+                      <th>Descricao</th>
+                      <th>Valor</th>
+                      <th>Forma de pagamento</th>
+                      <th>Pessoa</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="previewRows"></tbody>
+                </table>
+              </div>
+              <div class="preview-actions">
+                <button id="confirmImportButton" type="button">Adicionar selecionados</button>
+                <button id="discardImportButton" class="ghost" type="button">Limpar previa</button>
+              </div>
+            </section>
+          </section>
+
+          <section id="page-settings" class="page">
+            <section class="panel">
+              <div class="section-title">
+                <h3>Preferencias do sistema</h3>
+                <span>Valores padrao compartilhados</span>
+              </div>
+              <form id="settingsForm" class="field-grid">
+                <div class="field">
+                  <label for="settingsDefaultEnteredBy">Responsavel padrao</label>
+                  <input id="settingsDefaultEnteredBy" list="enteredByList" type="text" placeholder="Nome sugerido nos lancamentos" />
+                </div>
+                <div class="field">
+                  <label for="settingsDefaultPaymentMethod">Forma de pagamento padrao</label>
+                  <input id="settingsDefaultPaymentMethod" list="paymentMethodsList" type="text" placeholder="Metodo sugerido nos lancamentos" />
+                </div>
+                <div class="field">
+                  <label for="settingsDefaultPeriodPreset">Periodo padrao</label>
+                  <select id="settingsDefaultPeriodPreset">
+                    <option value="month">Mes atual</option>
+                    <option value="30days">Ultimos 30 dias</option>
+                  </select>
+                </div>
+                <div class="form-actions field-span-2">
+                  <button type="submit">Salvar preferencias</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Utilidades</h3>
+                <span>Manutencao do ambiente</span>
+              </div>
+              <div class="settings-actions">
+                <button id="exportButton" type="button">Exportar dados</button>
+                <button id="resetDataButton" class="ghost" type="button">Limpar dados do sistema</button>
+              </div>
+              <p class="settings-note">A senha do aplicativo continua sendo alterada diretamente nas variaveis de ambiente da Vercel pela chave <code>APP_PASSWORD</code>.</p>
+            </section>
+          </section>
+        </main>
       </div>
-      <div class="topbar-actions">
-        <label class="file-button">
-          <input id="statementInput" type="file" accept=".csv,.ofx,.txt" />
-          Importar extrato
-        </label>
-        <button id="exportButton" type="button">Exportar dados</button>
-        <button id="clearButton" class="ghost" type="button" disabled>Excluir selecionados</button>
-        <button id="logoutButton" class="ghost" type="button">Sair</button>
-      </div>
-    </header>
+    </div>
 
-    <main id="appMain" class="layout app-shell" hidden>
-      <section class="panel controls">
-        <div class="field">
-          <label for="periodStart">Período inicial</label>
-          <input id="periodStart" type="date" />
-        </div>
-
-        <div class="field">
-          <label for="periodEnd">Período final</label>
-          <input id="periodEnd" type="date" />
-        </div>
-
-        <div class="range-presets" aria-label="Atalhos de período">
-          <button class="ghost preset-button" type="button" data-range="month">Mês atual</button>
-          <button class="ghost preset-button" type="button" data-range="30days">30 dias</button>
-        </div>
-
-        <div class="field">
-          <label for="searchInput">Buscar</label>
-          <input id="searchInput" type="search" placeholder="Descrição, categoria ou valor" />
-        </div>
-
-        <form id="goalForm" class="goal-form">
-          <h2>Meta mensal</h2>
-          <div class="field">
-            <label for="goalCategory">Categoria</label>
-            <select id="goalCategory"></select>
-          </div>
-          <div class="field">
-            <label for="goalAmount">Valor da meta</label>
-            <input id="goalAmount" type="number" min="0" step="0.01" placeholder="0,00" />
-          </div>
-          <button type="submit">Salvar meta</button>
-        </form>
-
-        <form id="transactionForm" class="goal-form">
-          <h2>Lançamento manual</h2>
-          <div class="field">
-            <label for="manualDate">Data</label>
-            <input id="manualDate" type="date" required />
-          </div>
-          <div class="field">
-            <label for="manualDescription">Descrição</label>
-            <input id="manualDescription" type="text" required placeholder="Ex: Mercado" />
-          </div>
-          <div class="field">
-            <label for="manualAmount">Valor</label>
-            <input id="manualAmount" type="number" step="0.01" required placeholder="-120,00" />
-          </div>
-          <div class="field">
-            <label for="manualCategory">Categoria</label>
-            <select id="manualCategory"></select>
-          </div>
-          <button type="submit">Adicionar</button>
-        </form>
-      </section>
-
-      <section class="dashboard">
-        <div class="cards">
-          <article class="metric">
-            <span>Receitas</span>
-            <strong id="incomeTotal">R$ 0,00</strong>
-          </article>
-          <article class="metric">
-            <span>Gastos</span>
-            <strong id="expenseTotal">R$ 0,00</strong>
-          </article>
-          <article class="metric">
-            <span>Saldo</span>
-            <strong id="balanceTotal">R$ 0,00</strong>
-          </article>
-          <article class="metric">
-            <span>Maior categoria</span>
-            <strong id="topCategory">-</strong>
-          </article>
-        </div>
-
-        <section class="type-filter" aria-label="Filtro de tipo de movimentação">
-          <button class="type-card active" type="button" data-type="all">
-            <span>Todos</span>
-            <strong id="typeAllTotal">R$ 0,00</strong>
-          </button>
-          <button class="type-card" type="button" data-type="income">
-            <span>Entradas</span>
-            <strong id="typeIncomeTotal">R$ 0,00</strong>
-          </button>
-          <button class="type-card" type="button" data-type="expense">
-            <span>Saídas</span>
-            <strong id="typeExpenseTotal">R$ 0,00</strong>
-          </button>
-        </section>
-
-        <section id="importPreviewPanel" class="panel" hidden>
-          <div class="section-title">
-            <h2>Validar extrato</h2>
-            <span id="previewSummary"></span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Importar</th>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="previewRows"></tbody>
-            </table>
-          </div>
-          <div class="preview-actions">
-            <button id="confirmImportButton" type="button">Adicionar selecionados</button>
-            <button id="discardImportButton" class="ghost" type="button">Limpar prévia</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <h2>Metas e categorias</h2>
-            <span id="goalSummary"></span>
-          </div>
-          <div id="categoryList" class="category-list"></div>
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <h2>Movimentações</h2>
-            <span id="transactionCount"></span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Flag</th>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Valor</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="transactionRows"></tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-    </main>
+    <datalist id="enteredByList"></datalist>
+    <datalist id="paymentMethodsList"></datalist>
 
     <template id="categoryTemplate">
       <article class="category-item">
@@ -201,6 +411,27 @@
         <div class="category-footer">
           <span></span>
           <button type="button">Remover meta</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="namedGoalTemplate">
+      <article class="named-goal-card">
+        <div class="named-goal-header">
+          <div>
+            <strong></strong>
+            <span class="named-goal-deadline"></span>
+          </div>
+          <span class="named-goal-percent"></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar"></div>
+        </div>
+        <p class="named-goal-amounts"></p>
+        <p class="named-goal-notes"></p>
+        <div class="named-goal-actions">
+          <button class="ghost" type="button" data-action="edit">Editar</button>
+          <button class="ghost" type="button" data-action="delete">Excluir</button>
         </div>
       </article>
     </template>

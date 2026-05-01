@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "vercel dev",
-    "check": "node --check app.js && node --check api/state.js && node --check api/preview.js && node --check api/import.js && node --check api/export.js && node --check api/transactions.js && node --check api/transactions/[id].js && node --check api/goals/[category].js"
+    "check": "node --check app.js && node --check api/state.js && node --check api/preview.js && node --check api/import.js && node --check api/export.js && node --check api/transactions.js && node --check api/transactions/[id].js && node --check api/goals/[category].js && node --check api/settings.js && node --check api/named-goals.js && node --check api/named-goals/[id].js"
   },
   "engines": {
     "node": ">=18"

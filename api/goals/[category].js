@@ -9,22 +9,21 @@ module.exports = async function handler(req, res) {
 
   try {
     if (!CATEGORIES.includes(category)) {
-      res.status(400).json({ error: "Categoria inválida." });
+      res.status(400).json({ error: "Categoria invalida." });
       return;
     }
 
     if (req.method === "PUT") {
       const amount = Number(req.body.amount);
       if (!Number.isFinite(amount) || amount < 0) {
-        res.status(400).json({ error: "Valor de meta inválido." });
+        res.status(400).json({ error: "Valor de meta invalido." });
         return;
       }
 
-      const goal = { category, amount };
       const saved = await supabaseFetch("/goals?on_conflict=category", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify(goal),
+        body: JSON.stringify({ category, amount }),
       });
       res.status(200).json(saved[0]);
       return;
@@ -36,7 +35,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    res.status(405).json({ error: "Método não permitido." });
+    res.status(405).json({ error: "Metodo nao permitido." });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -8,20 +8,41 @@ function getConfig() {
     throw new Error("Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Vercel.");
   }
 
-  return { url: url.replace(/\/$/, ""), key };
+  if (url.includes("seu-projeto.supabase.co") || key.includes("sua-service-role-key")) {
+    throw new Error("As variaveis do Supabase ainda estao com valores de exemplo. Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY reais na Vercel.");
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("SUPABASE_URL invalida. Use a Project URL do Supabase, por exemplo https://xxxx.supabase.co.");
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error("SUPABASE_URL invalida. Use uma URL iniciando com https://.");
+  }
+
+  return { url: parsedUrl.href.replace(/\/$/, ""), key };
 }
 
 async function supabaseFetch(path, options = {}) {
   const { url, key } = getConfig();
-  const response = await fetch(`${url}/rest/v1${path}`, {
-    ...options,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
+  let response;
+
+  try {
+    response = await fetch(`${url}/rest/v1${path}`, {
+      ...options,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error("Nao foi possivel conectar ao Supabase. Confira se SUPABASE_URL esta correta, se o projeto esta ativo e se a variavel foi publicada no ambiente Production da Vercel.");
+  }
 
   if (!response.ok) {
     const details = await response.text();

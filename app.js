@@ -35,8 +35,6 @@ const MONTHS = [
   "Novembro",
   "Dezembro",
 ];
-const IGNORED_TRANSFER_CATEGORIES = new Set(["Transferências internas", "Transferências"]);
-
 const pageMeta = {
   dashboard: { title: "Dashboard", eyebrow: "Visao geral" },
   transactions: { title: "Movimentacoes", eyebrow: "Lancamentos e filtros" },
@@ -486,7 +484,6 @@ function dashboardFilteredTransactions() {
   const month = selectedDashboardMonth();
   return state.transactions
     .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
-    .filter((item) => !isIgnoredTransfer(item))
     .filter((item) => !elements.dashboardCategory.value || item.category === elements.dashboardCategory.value);
 }
 
@@ -1256,7 +1253,7 @@ async function updateTransactionField(id, payload) {
 
 function expensesByCategory(transactions) {
   return transactions.reduce((totals, item) => {
-    if (item.movement_type === "expense" && !isIgnoredTransfer(item)) {
+    if (item.movement_type === "expense") {
       totals[item.category] = (totals[item.category] || 0) + Math.abs(item.amount);
     }
     return totals;
@@ -1279,7 +1276,7 @@ function monthlyGoalFor(category, year, month) {
 function sumMonthlyGoals(year, month, category = "") {
   const categories = category
     ? [category]
-    : [...new Set([...state.categories, ...state.monthlyGoals.map((goal) => goal.category)])].filter((item) => !IGNORED_TRANSFER_CATEGORIES.has(item));
+    : [...new Set([...state.categories, ...state.monthlyGoals.map((goal) => goal.category)])];
   return categories.reduce((total, item) => total + monthlyGoalFor(item, year, month), 0);
 }
 
@@ -1289,7 +1286,6 @@ function monthlyCategories(totals, year, month) {
     ...state.monthlyGoals.filter((goal) => goal.year === year && goal.month === month).map((goal) => goal.category),
     ...Object.keys(state.goals),
   ])]
-    .filter((category) => !IGNORED_TRANSFER_CATEGORIES.has(category))
     .filter((category) => !elements.dashboardCategory.value || category === elements.dashboardCategory.value)
     .sort((a, b) => a.localeCompare(b));
 }
@@ -1297,7 +1293,6 @@ function monthlyCategories(totals, year, month) {
 function monthlySummary(year, month, category = "") {
   const transactions = state.transactions
     .filter((item) => item.movement_type === "expense")
-    .filter((item) => !isIgnoredTransfer(item))
     .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
     .filter((item) => !category || item.category === category);
 
@@ -1306,21 +1301,6 @@ function monthlySummary(year, month, category = "") {
     goal: sumMonthlyGoals(year, month, category),
     spent: Math.abs(sumAmounts(transactions)),
   };
-}
-
-function isIgnoredTransfer(transaction) {
-  if (IGNORED_TRANSFER_CATEGORIES.has(transaction.category)) return true;
-
-  const text = normalizeForAnalysis(`${transaction.description} ${transaction.category}`);
-  const transferWords = ["pix enviado", "pix recebido", "transf enviada", "transferencia", "transferi", "transferido", "ted", "doc"];
-  return transferWords.some((word) => text.includes(word));
-}
-
-function normalizeForAnalysis(value) {
-  return String(value)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function goalStatus(spent, goal) {

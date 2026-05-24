@@ -23,8 +23,8 @@ const RULES = [
   { category: "Lazer", words: ["cinema", "netflix", "spotify", "show", "bar", "ingresso"] },
   { category: "Assinaturas", words: ["amazon prime", "youtube", "icloud", "google", "microsoft", "assinatura"] },
   { category: "Impostos", words: ["ipva", "iptu", "dar", "receita federal", "fgts", "inss"] },
-  { category: "Transferências", words: ["pix enviado", "ted", "doc", "transferencia", "transferência"] },
-  { category: "Receitas", words: ["salario", "salário", "pix recebido", "recebimento", "deposito", "depósito"] },
+  { category: "Transferências", words: ["pix enviado", "pix recebido", "ted", "doc", "transferencia", "transferência"] },
+  { category: "Receitas", words: ["salario", "salário", "recebimento", "deposito", "depósito"] },
 ];
 
 module.exports = { CATEGORIES, RULES };

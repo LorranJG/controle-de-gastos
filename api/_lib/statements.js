@@ -202,6 +202,7 @@ function normalizeHeader(value) {
 function suggestCategory(description, amount) {
   const text = description.toLowerCase();
   if (isInternalTransfer(text)) return "Transferências internas";
+  if (isTransfer(text)) return "Transferências";
   const match = RULES.find((rule) => rule.words.some((word) => text.includes(word)));
   if (match) return match.category;
   return amount > 0 ? "Receitas" : "Outros";
@@ -209,12 +210,16 @@ function suggestCategory(description, amount) {
 
 function isInternalTransfer(text) {
   const normalized = normalizeForMatch(text);
-  const isTransfer = ["pix enviado", "pix recebido", "transf enviada", "transferencia", "transferi", "transferido", "ted", "doc"]
-    .some((word) => normalized.includes(word));
   const isOwnAccount = ["lorran jose gomes", "lorran gomes", "nubank", "nu pagamentos", "c6 bank", "c6"]
     .some((word) => normalized.includes(word));
 
-  return isTransfer && isOwnAccount;
+  return isTransfer(normalized) && isOwnAccount;
+}
+
+function isTransfer(text) {
+  const normalized = normalizeForMatch(text);
+  return ["pix enviado", "pix recebido", "transf enviada", "transferencia", "transferi", "transferido", "ted", "doc"]
+    .some((word) => normalized.includes(word));
 }
 
 function normalizeForMatch(value) {

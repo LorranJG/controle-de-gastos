@@ -1,14 +1,13 @@
 const { requirePassword } = require("../_lib/auth");
-const { CATEGORIES } = require("../_lib/constants");
 const { supabaseFetch } = require("../_lib/supabase");
 
 module.exports = async function handler(req, res) {
   if (!requirePassword(req, res)) return;
 
-  const category = decodeURIComponent(req.query.category);
+  const category = decodeURIComponent(req.query.category).trim();
 
   try {
-    if (!CATEGORIES.includes(category)) {
+    if (!category.trim()) {
       res.status(400).json({ error: "Categoria invalida." });
       return;
     }

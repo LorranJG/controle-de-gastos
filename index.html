@@ -377,7 +377,7 @@
               <form id="goalForm" class="field-grid">
                 <div class="field">
                   <label for="goalCategory">Categoria de gasto</label>
-                  <select id="goalCategory"></select>
+                  <input id="goalCategory" list="categoriesList" type="text" required placeholder="Ex: Alimentacao, Pets, Academia" />
                 </div>
                 <div class="field">
                   <label for="goalAmount">Limite planejado</label>
@@ -466,6 +466,13 @@
                     <option value="30days">Ultimos 30 dias</option>
                   </select>
                 </div>
+                <div class="field">
+                  <label for="settingsTheme">Tema</label>
+                  <select id="settingsTheme">
+                    <option value="light">Claro</option>
+                    <option value="dark">Escuro</option>
+                  </select>
+                </div>
                 <div class="form-actions field-span-2">
                   <button type="submit">Salvar preferencias</button>
                 </div>
@@ -490,6 +497,7 @@
 
     <datalist id="enteredByList"></datalist>
     <datalist id="paymentMethodsList"></datalist>
+    <datalist id="categoriesList"></datalist>
 
     <template id="categoryTemplate">
       <article class="category-item">

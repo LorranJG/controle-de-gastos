@@ -1,5 +1,5 @@
 const crypto = require("node:crypto");
-const { CATEGORIES, RULES } = require("./constants");
+const { RULES } = require("./constants");
 
 function parseStatement(filename, content) {
   return filename.toLowerCase().endsWith(".ofx") ? parseOfx(content) : parseCsv(content);
@@ -93,7 +93,7 @@ function normalizeTransaction(input) {
   const movementType = input.movement_type || input.movementType || inferMovementType(rawAmount);
   const amount = normalizeAmountByType(rawAmount, movementType);
   const description = cleanText(input.description || "Sem descricao");
-  const category = input.category || suggestCategory(description, amount);
+  const category = cleanText(input.category || suggestCategory(description, amount));
 
   if (!date || !Number.isFinite(amount) || !movementType) return null;
 
@@ -102,7 +102,7 @@ function normalizeTransaction(input) {
     date,
     description,
     amount,
-    category: CATEGORIES.includes(category) ? category : "Outros",
+    category: category || "Outros",
     movement_type: movementType,
     payment_method: cleanText(input.payment_method || input.paymentMethod || ""),
     entered_by: cleanText(input.entered_by || input.enteredBy || ""),

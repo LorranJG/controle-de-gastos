@@ -16,6 +16,23 @@
   --shadow: 0 18px 45px rgba(17, 40, 35, 0.08);
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111816;
+  --surface: #17211e;
+  --surface-2: #1d2a26;
+  --surface-3: #263630;
+  --text: #ecf5f2;
+  --muted: #a8bbb5;
+  --line: #334740;
+  --accent: #31b89f;
+  --accent-dark: #43c9b0;
+  --danger: #ff8a78;
+  --warning: #f2b35b;
+  --ok: #61d394;
+  --shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -27,6 +44,12 @@ body {
     radial-gradient(circle at top left, rgba(11, 122, 105, 0.18), transparent 24%),
     linear-gradient(180deg, #f8fbfa 0%, var(--bg) 34%);
   color: var(--text);
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(49, 184, 159, 0.18), transparent 24%),
+    linear-gradient(180deg, #0c1210 0%, var(--bg) 34%);
 }
 
 [hidden] {
@@ -152,7 +175,7 @@ button.ghost:hover,
 }
 
 .sidebar {
-  background: rgba(255, 255, 255, 0.86);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   border-right: 1px solid rgba(207, 219, 215, 0.9);
   box-shadow: var(--shadow);
   padding: 1.4rem 1rem;
@@ -200,7 +223,7 @@ button.ghost:hover,
 
 .topbar {
   align-items: center;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -290,7 +313,7 @@ label {
 input,
 select,
 textarea {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--text);
@@ -440,7 +463,7 @@ td,
 }
 
 .progress-track {
-  background: #dfe7e5;
+  background: var(--surface-3);
   border-radius: 999px;
   height: 10px;
   overflow: hidden;

@@ -87,6 +87,7 @@ const elements = {
   settingsDefaultEnteredBy: document.querySelector("#settingsDefaultEnteredBy"),
   settingsDefaultPaymentMethod: document.querySelector("#settingsDefaultPaymentMethod"),
   settingsDefaultPeriodPreset: document.querySelector("#settingsDefaultPeriodPreset"),
+  settingsTheme: document.querySelector("#settingsTheme"),
   exportButton: document.querySelector("#exportButton"),
   resetDataButton: document.querySelector("#resetDataButton"),
   incomeTotal: document.querySelector("#incomeTotal"),
@@ -123,12 +124,14 @@ const elements = {
   transactionCount: document.querySelector("#transactionCount"),
   enteredByList: document.querySelector("#enteredByList"),
   paymentMethodsList: document.querySelector("#paymentMethodsList"),
+  categoriesList: document.querySelector("#categoriesList"),
   categoryTemplate: document.querySelector("#categoryTemplate"),
   namedGoalTemplate: document.querySelector("#namedGoalTemplate"),
   debtTemplate: document.querySelector("#debtTemplate"),
 };
 
 async function init() {
+  applyTheme(localStorage.getItem("theme") || "light");
   bindEvents();
 
   if (sessionStorage.getItem("appPassword")) {
@@ -161,6 +164,7 @@ function bindEvents() {
   elements.cancelDebtEdit.addEventListener("click", resetDebtForm);
   elements.transactionForm.addEventListener("submit", addManualTransaction);
   elements.settingsForm.addEventListener("submit", saveSettings);
+  elements.settingsTheme.addEventListener("change", () => applyTheme(elements.settingsTheme.value));
   elements.exportButton.addEventListener("click", exportData);
   elements.resetDataButton.addEventListener("click", resetSystemData);
 }
@@ -232,8 +236,8 @@ function setCurrentPage(page) {
 async function loadState() {
   state = await api("/api/state");
   ensurePeriods();
-  fillCategorySelect(elements.goalCategory, false);
   fillCategorySelect(elements.manualCategory, false);
+  fillCategoryDataList();
   fillTransactionFilters();
   fillDataLists();
   fillSettingsForm();
@@ -301,6 +305,14 @@ function fillCategorySelect(select, includeEmpty) {
   select.replaceChildren(...options);
 }
 
+function fillCategoryDataList() {
+  elements.categoriesList.replaceChildren(...state.categories.map((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    return option;
+  }));
+}
+
 function fillTransactionFilters() {
   fillSelectWithValues(elements.filterCategory, ["", ...state.categories], "Todas");
   fillSelectWithValues(elements.filterEnteredBy, ["", ...uniqueValues("entered_by")], "Todas");
@@ -338,6 +350,7 @@ function fillSettingsForm() {
   elements.settingsDefaultEnteredBy.value = state.settings.default_entered_by || "";
   elements.settingsDefaultPaymentMethod.value = state.settings.default_payment_method || "";
   elements.settingsDefaultPeriodPreset.value = state.settings.default_period_preset || "month";
+  elements.settingsTheme.value = localStorage.getItem("theme") || "light";
 }
 
 function fillDefaultsFromSettings() {
@@ -820,14 +833,16 @@ async function addManualTransaction(event) {
 
 async function saveCategoryGoal(event) {
   event.preventDefault();
+  const category = elements.goalCategory.value.trim();
   const amount = Number(elements.goalAmount.value);
-  if (!Number.isFinite(amount) || amount < 0) return;
+  if (!category || !Number.isFinite(amount) || amount < 0) return;
 
-  await api(`/api/goals/${encodeURIComponent(elements.goalCategory.value)}`, {
+  await api(`/api/goals/${encodeURIComponent(category)}`, {
     method: "PUT",
     body: JSON.stringify({ amount }),
   });
 
+  elements.goalCategory.value = "";
   elements.goalAmount.value = "";
   await loadState();
 }
@@ -948,6 +963,7 @@ function resetDebtForm() {
 
 async function saveSettings(event) {
   event.preventDefault();
+  applyTheme(elements.settingsTheme.value);
 
   await api("/api/settings", {
     method: "PUT",
@@ -961,6 +977,13 @@ async function saveSettings(event) {
   localStorage.removeItem("periodStart");
   localStorage.removeItem("periodEnd");
   await loadState();
+}
+
+function applyTheme(theme) {
+  const selected = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = selected;
+  localStorage.setItem("theme", selected);
+  if (elements.settingsTheme) elements.settingsTheme.value = selected;
 }
 
 async function exportData() {

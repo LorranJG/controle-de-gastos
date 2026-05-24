@@ -83,11 +83,19 @@ async function getState() {
     supabaseFetch("/debts?select=*&order=created_at.desc"),
     supabaseFetch("/app_settings?select=*&id=eq.1"),
   ]);
+  const transactionRows = (transactions || []).map(normalizeTransactionRecord);
+  const goalRows = goals || [];
+  const customCategories = [...new Set([
+    ...goalRows.map((goal) => goal.category),
+    ...transactionRows.map((transaction) => transaction.category),
+  ].filter(Boolean))]
+    .filter((category) => !CATEGORIES.includes(category))
+    .sort((a, b) => a.localeCompare(b));
 
   return {
-    categories: CATEGORIES,
-    transactions: (transactions || []).map(normalizeTransactionRecord),
-    goals: Object.fromEntries((goals || []).map((goal) => [goal.category, Number(goal.amount)])),
+    categories: [...CATEGORIES, ...customCategories],
+    transactions: transactionRows,
+    goals: Object.fromEntries(goalRows.map((goal) => [goal.category, Number(goal.amount)])),
     namedGoals: (namedGoals || []).map(normalizeNamedGoal),
     debts: (debts || []).map(normalizeDebt),
     settings: { ...defaultSettings(), ...((settingsRows || [])[0] || {}) },

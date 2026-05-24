@@ -1,5 +1,4 @@
 const { requirePassword } = require("../_lib/auth");
-const { CATEGORIES } = require("../_lib/constants");
 const { normalizeTransaction } = require("../_lib/statements");
 const { supabaseFetch, normalizeTransactionRecord } = require("../_lib/supabase");
 
@@ -13,11 +12,12 @@ module.exports = async function handler(req, res) {
       const payload = {};
 
       if (req.body.category !== undefined) {
-        if (!CATEGORIES.includes(req.body.category)) {
+        const category = String(req.body.category || "").trim();
+        if (!category) {
           res.status(400).json({ error: "Categoria invalida." });
           return;
         }
-        payload.category = req.body.category;
+        payload.category = category;
       }
 
       if (req.body.payment_method !== undefined) {

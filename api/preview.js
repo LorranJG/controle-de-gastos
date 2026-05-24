@@ -18,20 +18,27 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const existing = await supabaseFetch(`/transactions?select=id&id=in.(${parsed.map((item) => item.id).join(",")})`);
+    const uniqueIds = [...new Set(parsed.map((item) => item.id))];
+    const existing = await supabaseFetch(`/transactions?select=id&id=in.(${uniqueIds.join(",")})`);
     const existingIds = new Set((existing || []).map((item) => item.id));
+    const previewIds = new Set();
     const importBatchId = crypto.randomUUID();
     const defaultEnteredBy = String(req.body.entered_by || "").trim();
     const defaultPaymentMethod = String(req.body.payment_method || "").trim();
 
-    const transactions = parsed.map((transaction) => normalizeTransactionRecord({
-      ...transaction,
-      entered_by: transaction.entered_by || defaultEnteredBy,
-      payment_method: transaction.payment_method || defaultPaymentMethod,
-      import_batch_id: importBatchId,
-      source: "import",
-      duplicate: existingIds.has(transaction.id),
-    }));
+    const transactions = parsed.map((transaction) => {
+      const duplicate = existingIds.has(transaction.id) || previewIds.has(transaction.id);
+      previewIds.add(transaction.id);
+
+      return normalizeTransactionRecord({
+        ...transaction,
+        entered_by: transaction.entered_by || defaultEnteredBy,
+        payment_method: transaction.payment_method || defaultPaymentMethod,
+        import_batch_id: importBatchId,
+        source: "import",
+        duplicate,
+      });
+    });
 
     res.status(200).json({
       transactions,

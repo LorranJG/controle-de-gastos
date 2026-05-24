@@ -20,16 +20,17 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const existing = await supabaseFetch(`/transactions?select=id&id=in.(${parsed.map((item) => item.id).join(",")})`);
+    const uniqueParsed = keepFirstById(parsed);
+    const existing = await supabaseFetch(`/transactions?select=id&id=in.(${uniqueParsed.map((item) => item.id).join(",")})`);
     const existingIds = new Set((existing || []).map((item) => item.id));
-    const transactions = parsed
+    const transactions = uniqueParsed
       .filter((item) => !existingIds.has(item.id))
       .filter((item) => item.entered_by && item.payment_method);
 
     if (transactions.length) {
-      await supabaseFetch("/transactions", {
+      await supabaseFetch("/transactions?on_conflict=id", {
         method: "POST",
-        headers: { Prefer: "return=minimal" },
+        headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
         body: JSON.stringify(transactions),
       });
     }
@@ -39,3 +40,12 @@ module.exports = async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 };
+
+function keepFirstById(transactions) {
+  const seen = new Set();
+  return transactions.filter((transaction) => {
+    if (seen.has(transaction.id)) return false;
+    seen.add(transaction.id);
+    return true;
+  });
+}

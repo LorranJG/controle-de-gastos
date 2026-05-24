@@ -950,24 +950,29 @@ async function previewStatement(event) {
     return;
   }
 
-  const content = await file.text();
-  const result = await api("/api/preview", {
-    method: "POST",
-    body: JSON.stringify({
-      filename: file.name,
-      content,
-      entered_by: elements.importEnteredBy.value.trim(),
-      payment_method: elements.importPaymentMethod.value.trim(),
-    }),
-  });
+  try {
+    const content = await file.text();
+    const result = await api("/api/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        filename: file.name,
+        content,
+        entered_by: elements.importEnteredBy.value.trim(),
+        payment_method: elements.importPaymentMethod.value.trim(),
+      }),
+    });
 
-  pendingImport = result.transactions.map((transaction) => ({
-    ...transaction,
-    selected: !transaction.duplicate,
-  }));
+    pendingImport = result.transactions.map((transaction) => ({
+      ...transaction,
+      selected: !transaction.duplicate,
+    }));
 
-  renderImportPreview();
-  event.target.value = "";
+    renderImportPreview();
+  } catch (error) {
+    if (!error.alreadyShown) alert(error.message || "Nao foi possivel ler o arquivo.");
+  } finally {
+    event.target.value = "";
+  }
 }
 
 async function confirmImport() {
@@ -982,18 +987,22 @@ async function confirmImport() {
     return;
   }
 
-  const result = await api("/api/import", {
-    method: "POST",
-    body: JSON.stringify({ transactions }),
-  });
+  try {
+    const result = await api("/api/import", {
+      method: "POST",
+      body: JSON.stringify({ transactions }),
+    });
 
-  clearImportPreview();
-  await loadState();
+    clearImportPreview();
+    await loadState();
 
-  if (!result.imported) {
-    alert("Nenhuma movimentacao nova foi adicionada.");
-  } else {
-    alert(`${result.imported} movimentacao(oes) adicionada(s) com sucesso.`);
+    if (!result.imported) {
+      alert("Nenhuma movimentacao nova foi adicionada.");
+    } else {
+      alert(`${result.imported} movimentacao(oes) adicionada(s) com sucesso.`);
+    }
+  } catch (error) {
+    if (!error.alreadyShown) alert(error.message || "Nao foi possivel importar as movimentacoes.");
   }
 }
 
@@ -1423,8 +1432,10 @@ async function handleApiError(response) {
   }
 
   const error = await response.json().catch(() => ({ error: "Erro inesperado." }));
-  alert(error.error || "Erro inesperado.");
-  throw new Error(error.error || response.statusText);
+  const apiError = new Error(error.error || response.statusText);
+  apiError.alreadyShown = true;
+  alert(apiError.message || "Erro inesperado.");
+  throw apiError;
 }
 
 function formatDate(date) {

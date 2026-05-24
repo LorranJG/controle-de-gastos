@@ -5,7 +5,7 @@ function requirePassword(req, res) {
   const received = req.headers["x-app-password"];
   if (received === configured) return true;
 
-  res.status(401).json({ error: "Senha inválida ou ausente." });
+  res.status(401).json({ error: "Senha invalida ou ausente." });
   return false;
 }
 

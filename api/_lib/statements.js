@@ -201,9 +201,27 @@ function normalizeHeader(value) {
 
 function suggestCategory(description, amount) {
   const text = description.toLowerCase();
+  if (isInternalTransfer(text)) return "Transferências internas";
   const match = RULES.find((rule) => rule.words.some((word) => text.includes(word)));
   if (match) return match.category;
   return amount > 0 ? "Receitas" : "Outros";
+}
+
+function isInternalTransfer(text) {
+  const normalized = normalizeForMatch(text);
+  const isTransfer = ["pix enviado", "pix recebido", "transf enviada", "transferencia", "transferi", "transferido", "ted", "doc"]
+    .some((word) => normalized.includes(word));
+  const isOwnAccount = ["lorran jose gomes", "lorran gomes", "nubank", "nu pagamentos", "c6 bank", "c6"]
+    .some((word) => normalized.includes(word));
+
+  return isTransfer && isOwnAccount;
+}
+
+function normalizeForMatch(value) {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function makeId(date, description, amount) {

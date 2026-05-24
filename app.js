@@ -35,6 +35,7 @@ const MONTHS = [
   "Novembro",
   "Dezembro",
 ];
+const INTERNAL_TRANSFER_CATEGORY = "Transferências internas";
 
 const pageMeta = {
   dashboard: { title: "Dashboard", eyebrow: "Visao geral" },
@@ -485,6 +486,7 @@ function dashboardFilteredTransactions() {
   const month = selectedDashboardMonth();
   return state.transactions
     .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
+    .filter((item) => !isInternalTransfer(item))
     .filter((item) => !elements.dashboardCategory.value || item.category === elements.dashboardCategory.value);
 }
 
@@ -1254,7 +1256,7 @@ async function updateTransactionField(id, payload) {
 
 function expensesByCategory(transactions) {
   return transactions.reduce((totals, item) => {
-    if (item.movement_type === "expense") {
+    if (item.movement_type === "expense" && !isInternalTransfer(item)) {
       totals[item.category] = (totals[item.category] || 0) + Math.abs(item.amount);
     }
     return totals;
@@ -1275,7 +1277,9 @@ function monthlyGoalFor(category, year, month) {
 }
 
 function sumMonthlyGoals(year, month, category = "") {
-  const categories = category ? [category] : [...new Set([...state.categories, ...state.monthlyGoals.map((goal) => goal.category)])];
+  const categories = category
+    ? [category]
+    : [...new Set([...state.categories, ...state.monthlyGoals.map((goal) => goal.category)])].filter((item) => item !== INTERNAL_TRANSFER_CATEGORY);
   return categories.reduce((total, item) => total + monthlyGoalFor(item, year, month), 0);
 }
 
@@ -1285,6 +1289,7 @@ function monthlyCategories(totals, year, month) {
     ...state.monthlyGoals.filter((goal) => goal.year === year && goal.month === month).map((goal) => goal.category),
     ...Object.keys(state.goals),
   ])]
+    .filter((category) => category !== INTERNAL_TRANSFER_CATEGORY)
     .filter((category) => !elements.dashboardCategory.value || category === elements.dashboardCategory.value)
     .sort((a, b) => a.localeCompare(b));
 }
@@ -1292,6 +1297,7 @@ function monthlyCategories(totals, year, month) {
 function monthlySummary(year, month, category = "") {
   const transactions = state.transactions
     .filter((item) => item.movement_type === "expense")
+    .filter((item) => !isInternalTransfer(item))
     .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
     .filter((item) => !category || item.category === category);
 
@@ -1300,6 +1306,22 @@ function monthlySummary(year, month, category = "") {
     goal: sumMonthlyGoals(year, month, category),
     spent: Math.abs(sumAmounts(transactions)),
   };
+}
+
+function isInternalTransfer(transaction) {
+  if (transaction.category === INTERNAL_TRANSFER_CATEGORY) return true;
+
+  const text = normalizeForAnalysis(`${transaction.description} ${transaction.category}`);
+  const transferWords = ["pix enviado", "pix recebido", "transf enviada", "transferencia", "transferi", "transferido", "ted", "doc"];
+  const ownAccountWords = ["lorran jose gomes", "lorran gomes", "nubank", "nu pagamentos", "c6 bank", "c6"];
+  return transferWords.some((word) => text.includes(word)) && ownAccountWords.some((word) => text.includes(word));
+}
+
+function normalizeForAnalysis(value) {
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function goalStatus(spent, goal) {

@@ -9,6 +9,7 @@ const CATEGORIES = [
   "Compras",
   "Impostos",
   "Receitas",
+  "Transferências internas",
   "Transferências",
   "Outros",
 ];

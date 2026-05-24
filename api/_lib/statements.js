@@ -9,17 +9,13 @@ function parseCsv(content) {
   const rows = splitCsv(content).filter((row) => row.some(Boolean));
   if (!rows.length) return [];
 
-  const header = rows[0].map(normalizeHeader);
+  const headerIndex = findHeaderRow(rows);
+  const header = rows[headerIndex].map(normalizeHeader);
   const hasHeader = header.some((cell) => ["data", "date", "valor", "amount", "descricao", "description", "historico"].includes(cell));
-  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const dataRows = hasHeader ? rows.slice(headerIndex + 1) : rows;
   const indexes = hasHeader ? mapCsvColumns(header) : guessCsvColumns(rows[0]);
 
-  return dataRows.map((row) => normalizeTransaction({
-    date: row[indexes.date],
-    description: row[indexes.description],
-    amount: row[indexes.amount],
-    source: "import",
-  })).filter(Boolean);
+  return dataRows.map((row) => normalizeCsvTransaction(row, indexes)).filter(Boolean);
 }
 
 function splitCsv(text) {
@@ -54,9 +50,12 @@ function splitCsv(text) {
 
 function mapCsvColumns(header) {
   return {
-    date: findIndex(header, ["data", "date", "dt", "lancamento", "lançamento"]),
-    description: findIndex(header, ["descricao", "descrição", "description", "historico", "histórico", "memo", "estabelecimento"]),
+    date: findIndex(header, ["data", "date", "dt", "lancamento", "data lancamento"]),
+    description: findIndex(header, ["descricao", "description", "historico", "memo", "estabelecimento"]),
     amount: findIndex(header, ["valor", "amount", "value", "vlr", "montante"]),
+    income: findIndex(header, ["entrada(r$)", "entrada", "credito", "creditos"]),
+    expense: findIndex(header, ["saida(r$)", "saida", "debito", "debitos"]),
+    title: findIndex(header, ["titulo", "title"]),
   };
 }
 
@@ -64,12 +63,56 @@ function guessCsvColumns(row) {
   const date = row.findIndex((cell) => parseDate(cell));
   const amount = row.findIndex((cell) => Number.isFinite(parseAmount(cell)));
   const description = row.findIndex((_, index) => index !== date && index !== amount);
-  return { date, amount, description };
+  return { date, amount, description, income: -1, expense: -1, title: description };
 }
 
 function findIndex(header, names) {
   const index = header.findIndex((cell) => names.includes(cell));
+  return index >= 0 ? index : -1;
+}
+
+function findHeaderRow(rows) {
+  const index = rows.findIndex((row) => {
+    const header = row.map(normalizeHeader);
+    const hasDate = header.some((cell) => ["data", "date", "dt", "data lancamento"].includes(cell));
+    const hasValue = header.some((cell) => ["valor", "amount", "entrada(r$)", "saida(r$)", "entrada", "saida"].includes(cell));
+    return hasDate && hasValue;
+  });
+
   return index >= 0 ? index : 0;
+}
+
+function normalizeCsvTransaction(row, indexes) {
+  const amount = amountFromCsvRow(row, indexes);
+  const description = descriptionFromCsvRow(row, indexes);
+
+  return normalizeTransaction({
+    date: readCell(row, indexes.date),
+    description,
+    amount,
+    source: "import",
+  });
+}
+
+function amountFromCsvRow(row, indexes) {
+  const income = parseAmount(readCell(row, indexes.income));
+  const expense = parseAmount(readCell(row, indexes.expense));
+
+  if (Number.isFinite(income) || Number.isFinite(expense)) {
+    return (Number.isFinite(income) ? income : 0) - (Number.isFinite(expense) ? expense : 0);
+  }
+
+  return readCell(row, indexes.amount);
+}
+
+function descriptionFromCsvRow(row, indexes) {
+  const title = indexes.title !== indexes.description ? cleanText(readCell(row, indexes.title)) : "";
+  const description = cleanText(readCell(row, indexes.description));
+  return [title, description].filter(Boolean).join(" - ");
+}
+
+function readCell(row, index) {
+  return index >= 0 ? row[index] : "";
 }
 
 function parseOfx(text) {
@@ -150,7 +193,10 @@ function cleanText(value) {
 }
 
 function normalizeHeader(value) {
-  return cleanText(value).toLowerCase();
+  return cleanText(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function suggestCategory(description, amount) {

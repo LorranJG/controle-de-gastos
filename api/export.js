@@ -17,6 +17,7 @@ module.exports = async function handler(req, res) {
       transactions: state.transactions,
       goals: state.goals,
       namedGoals: state.namedGoals,
+      debts: state.debts,
       settings: state.settings,
     }, null, 2));
   } catch (error) {

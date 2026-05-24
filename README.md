@@ -38,7 +38,8 @@ Depois acesse `http://localhost:3000`.
 ## Funcionalidades
 
 - SPA com paginas de Dashboard, Movimentacoes, Metas, Importar gastos e Configuracoes.
-- Metas por categoria e metas nomeadas com progresso.
+- Limites de gastos por categoria e metas nomeadas com progresso.
+- Cadastro de dividas com saldo devedor, juros, pagamento minimo, vencimento e status.
 - Lancamentos manuais com tipo, forma de pagamento e pessoa responsavel.
 - Importacao de extratos com previa antes de gravar.
 - Filtros por periodo, categoria, pessoa, forma de pagamento e tipo.

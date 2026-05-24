@@ -14,6 +14,7 @@ module.exports = async function handler(req, res) {
       await supabaseFetch("/transactions?id=not.is.null", { method: "DELETE" });
       await supabaseFetch("/goals?category=not.is.null", { method: "DELETE" });
       await supabaseFetch("/named_goals?id=not.is.null", { method: "DELETE" });
+      await supabaseFetch("/debts?id=not.is.null", { method: "DELETE" });
       res.status(200).json(await getState());
       return;
     }

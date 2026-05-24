@@ -53,6 +53,20 @@ function normalizeNamedGoal(goal) {
   };
 }
 
+function normalizeDebt(debt) {
+  return {
+    ...debt,
+    creditor: debt.creditor || "",
+    original_amount: Number(debt.original_amount),
+    current_balance: Number(debt.current_balance),
+    interest_rate: Number(debt.interest_rate),
+    minimum_payment: Number(debt.minimum_payment),
+    due_day: debt.due_day === null || debt.due_day === undefined ? null : Number(debt.due_day),
+    status: debt.status || "active",
+    notes: debt.notes || "",
+  };
+}
+
 function defaultSettings() {
   return {
     default_entered_by: "",
@@ -62,10 +76,11 @@ function defaultSettings() {
 }
 
 async function getState() {
-  const [transactions, goals, namedGoals, settingsRows] = await Promise.all([
+  const [transactions, goals, namedGoals, debts, settingsRows] = await Promise.all([
     supabaseFetch("/transactions?select=*&order=date.desc,created_at.desc"),
     supabaseFetch("/goals?select=*&order=category.asc"),
     supabaseFetch("/named_goals?select=*&order=created_at.desc"),
+    supabaseFetch("/debts?select=*&order=created_at.desc"),
     supabaseFetch("/app_settings?select=*&id=eq.1"),
   ]);
 
@@ -74,6 +89,7 @@ async function getState() {
     transactions: (transactions || []).map(normalizeTransactionRecord),
     goals: Object.fromEntries((goals || []).map((goal) => [goal.category, Number(goal.amount)])),
     namedGoals: (namedGoals || []).map(normalizeNamedGoal),
+    debts: (debts || []).map(normalizeDebt),
     settings: { ...defaultSettings(), ...((settingsRows || [])[0] || {}) },
   };
 }
@@ -81,6 +97,7 @@ async function getState() {
 module.exports = {
   defaultSettings,
   getState,
+  normalizeDebt,
   normalizeNamedGoal,
   normalizeTransactionRecord,
   supabaseFetch,

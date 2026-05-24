@@ -45,6 +45,21 @@ create table if not exists public.named_goals (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.debts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  creditor text,
+  original_amount numeric(12, 2) not null default 0,
+  current_balance numeric(12, 2) not null default 0,
+  interest_rate numeric(7, 4) not null default 0,
+  minimum_payment numeric(12, 2) not null default 0,
+  due_day integer,
+  status text not null default 'active',
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.app_settings (
   id integer primary key,
   default_entered_by text,
@@ -61,4 +76,5 @@ on conflict (id) do nothing;
 alter table public.transactions enable row level security;
 alter table public.goals enable row level security;
 alter table public.named_goals enable row level security;
+alter table public.debts enable row level security;
 alter table public.app_settings enable row level security;

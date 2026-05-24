@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">Acesso privado</p>
           <h1>Controle de Gastos</h1>
-          <p>Entre com a senha compartilhada para acessar dashboard, movimentacoes, importacoes e metas.</p>
+          <p>Entre com a senha compartilhada para acessar dashboard, movimentacoes, dividas, importacoes e metas.</p>
         </div>
         <div class="field">
           <label for="loginPassword">Senha</label>
@@ -34,6 +34,7 @@
         <nav class="nav-menu" aria-label="Navegacao principal">
           <button class="nav-link active" type="button" data-page="dashboard">Dashboard</button>
           <button class="nav-link" type="button" data-page="transactions">Movimentacoes</button>
+          <button class="nav-link" type="button" data-page="debts">Dividas</button>
           <button class="nav-link" type="button" data-page="goals">Metas</button>
           <button class="nav-link" type="button" data-page="import">Importar gastos</button>
           <button class="nav-link" type="button" data-page="settings">Configuracoes</button>
@@ -54,6 +55,7 @@
         <nav class="mobile-nav" aria-label="Navegacao mobile">
           <button class="nav-link active" type="button" data-page="dashboard">Dashboard</button>
           <button class="nav-link" type="button" data-page="transactions">Movimentacoes</button>
+          <button class="nav-link" type="button" data-page="debts">Dividas</button>
           <button class="nav-link" type="button" data-page="goals">Metas</button>
           <button class="nav-link" type="button" data-page="import">Importar</button>
           <button class="nav-link" type="button" data-page="settings">Configuracoes</button>
@@ -97,10 +99,18 @@
 
             <section class="panel">
               <div class="section-title">
-                <h3>Metas por categoria</h3>
+                <h3>Limites de gastos</h3>
                 <span id="goalSummary"></span>
               </div>
               <div id="categoryList" class="category-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Dividas</h3>
+                <span id="debtSummary"></span>
+              </div>
+              <div id="dashboardDebts" class="debt-grid"></div>
             </section>
 
             <section class="panel">
@@ -234,6 +244,88 @@
             </section>
           </section>
 
+          <section id="page-debts" class="page">
+            <div class="cards">
+              <article class="metric">
+                <span>Saldo devedor</span>
+                <strong id="debtTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Juros estimados ao mes</span>
+                <strong id="debtInterestTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Pagamentos minimos</span>
+                <strong id="debtMinimumTotal">R$ 0,00</strong>
+              </article>
+              <article class="metric">
+                <span>Dividas ativas</span>
+                <strong id="debtActiveCount">0</strong>
+              </article>
+            </div>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Nova divida</h3>
+                <span>Financiamentos, cartoes, emprestimos e parcelas</span>
+              </div>
+              <form id="debtForm" class="field-grid">
+                <input id="debtId" type="hidden" />
+                <div class="field">
+                  <label for="debtName">Divida</label>
+                  <input id="debtName" type="text" required placeholder="Ex: Cartao Nubank" />
+                </div>
+                <div class="field">
+                  <label for="debtCreditor">Credor</label>
+                  <input id="debtCreditor" type="text" placeholder="Banco, loja ou pessoa" />
+                </div>
+                <div class="field">
+                  <label for="debtOriginalAmount">Valor original</label>
+                  <input id="debtOriginalAmount" type="number" min="0" step="0.01" required placeholder="0,00" />
+                </div>
+                <div class="field">
+                  <label for="debtCurrentBalance">Saldo devedor</label>
+                  <input id="debtCurrentBalance" type="number" min="0" step="0.01" required placeholder="0,00" />
+                </div>
+                <div class="field">
+                  <label for="debtInterestRate">Juros ao mes (%)</label>
+                  <input id="debtInterestRate" type="number" min="0" step="0.01" placeholder="0,00" />
+                </div>
+                <div class="field">
+                  <label for="debtMinimumPayment">Pagamento minimo</label>
+                  <input id="debtMinimumPayment" type="number" min="0" step="0.01" placeholder="0,00" />
+                </div>
+                <div class="field">
+                  <label for="debtDueDay">Dia de vencimento</label>
+                  <input id="debtDueDay" type="number" min="1" max="31" step="1" placeholder="Ex: 10" />
+                </div>
+                <div class="field">
+                  <label for="debtStatus">Status</label>
+                  <select id="debtStatus">
+                    <option value="active">Ativa</option>
+                    <option value="paid">Quitada</option>
+                  </select>
+                </div>
+                <div class="field field-span-2">
+                  <label for="debtNotes">Observacao</label>
+                  <textarea id="debtNotes" rows="4" placeholder="Contrato, parcelas, estrategia de pagamento"></textarea>
+                </div>
+                <div class="form-actions field-span-2">
+                  <button type="submit">Salvar divida</button>
+                  <button id="cancelDebtEdit" class="ghost" type="button" hidden>Cancelar edicao</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-title">
+                <h3>Dividas cadastradas</h3>
+                <span id="debtsPageSummary"></span>
+              </div>
+              <div id="debtList" class="debt-grid"></div>
+            </section>
+          </section>
+
           <section id="page-goals" class="page">
             <section class="panel">
               <div class="section-title">
@@ -279,20 +371,20 @@
 
             <section class="panel">
               <div class="section-title">
-                <h3>Metas por categoria</h3>
-                <span>Compatibilidade com o dashboard</span>
+                <h3>Limites de gastos por categoria</h3>
+                <span>Orcamento para despesas recorrentes</span>
               </div>
               <form id="goalForm" class="field-grid">
                 <div class="field">
-                  <label for="goalCategory">Categoria</label>
+                  <label for="goalCategory">Categoria de gasto</label>
                   <select id="goalCategory"></select>
                 </div>
                 <div class="field">
-                  <label for="goalAmount">Valor da meta</label>
+                  <label for="goalAmount">Limite planejado</label>
                   <input id="goalAmount" type="number" min="0" step="0.01" placeholder="0,00" />
                 </div>
                 <div class="form-actions field-span-2">
-                  <button type="submit">Salvar meta por categoria</button>
+                  <button type="submit">Salvar limite</button>
                 </div>
               </form>
             </section>
@@ -410,7 +502,7 @@
         </div>
         <div class="category-footer">
           <span></span>
-          <button type="button">Remover meta</button>
+          <button type="button">Remover limite</button>
         </div>
       </article>
     </template>
@@ -430,6 +522,32 @@
         <p class="named-goal-amounts"></p>
         <p class="named-goal-notes"></p>
         <div class="named-goal-actions">
+          <button class="ghost" type="button" data-action="edit">Editar</button>
+          <button class="ghost" type="button" data-action="delete">Excluir</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="debtTemplate">
+      <article class="debt-card">
+        <div class="debt-header">
+          <div>
+            <strong></strong>
+            <span class="debt-creditor"></span>
+          </div>
+          <span class="debt-status"></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="debt-stats">
+          <span class="debt-balance"></span>
+          <span class="debt-interest"></span>
+          <span class="debt-payment"></span>
+          <span class="debt-due-day"></span>
+        </div>
+        <p class="debt-notes"></p>
+        <div class="debt-actions">
           <button class="ghost" type="button" data-action="edit">Editar</button>
           <button class="ghost" type="button" data-action="delete">Excluir</button>
         </div>

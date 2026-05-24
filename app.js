@@ -6,6 +6,7 @@ let state = {
   transactions: [],
   goals: {},
   namedGoals: [],
+  debts: [],
   settings: {
     default_entered_by: "",
     default_payment_method: "",
@@ -17,11 +18,13 @@ let currentPage = "dashboard";
 let transactionType = "all";
 let pendingImport = [];
 let editingNamedGoalId = "";
+let editingDebtId = "";
 const selectedTransactions = new Set();
 
 const pageMeta = {
   dashboard: { title: "Dashboard", eyebrow: "Visao geral" },
   transactions: { title: "Movimentacoes", eyebrow: "Lancamentos e filtros" },
+  debts: { title: "Dividas", eyebrow: "Acompanhamento de saldo e juros" },
   goals: { title: "Metas", eyebrow: "Planejamento" },
   import: { title: "Importar gastos", eyebrow: "Revisao antes de salvar" },
   settings: { title: "Configuracoes", eyebrow: "Preferencias do sistema" },
@@ -92,16 +95,37 @@ const elements = {
   topCategory: document.querySelector("#topCategory"),
   goalSummary: document.querySelector("#goalSummary"),
   categoryList: document.querySelector("#categoryList"),
+  debtSummary: document.querySelector("#debtSummary"),
+  dashboardDebts: document.querySelector("#dashboardDebts"),
   namedGoalSummary: document.querySelector("#namedGoalSummary"),
   dashboardNamedGoals: document.querySelector("#dashboardNamedGoals"),
   goalsPageSummary: document.querySelector("#goalsPageSummary"),
   namedGoalList: document.querySelector("#namedGoalList"),
+  debtForm: document.querySelector("#debtForm"),
+  debtId: document.querySelector("#debtId"),
+  debtName: document.querySelector("#debtName"),
+  debtCreditor: document.querySelector("#debtCreditor"),
+  debtOriginalAmount: document.querySelector("#debtOriginalAmount"),
+  debtCurrentBalance: document.querySelector("#debtCurrentBalance"),
+  debtInterestRate: document.querySelector("#debtInterestRate"),
+  debtMinimumPayment: document.querySelector("#debtMinimumPayment"),
+  debtDueDay: document.querySelector("#debtDueDay"),
+  debtStatus: document.querySelector("#debtStatus"),
+  debtNotes: document.querySelector("#debtNotes"),
+  cancelDebtEdit: document.querySelector("#cancelDebtEdit"),
+  debtTotal: document.querySelector("#debtTotal"),
+  debtInterestTotal: document.querySelector("#debtInterestTotal"),
+  debtMinimumTotal: document.querySelector("#debtMinimumTotal"),
+  debtActiveCount: document.querySelector("#debtActiveCount"),
+  debtsPageSummary: document.querySelector("#debtsPageSummary"),
+  debtList: document.querySelector("#debtList"),
   transactionRows: document.querySelector("#transactionRows"),
   transactionCount: document.querySelector("#transactionCount"),
   enteredByList: document.querySelector("#enteredByList"),
   paymentMethodsList: document.querySelector("#paymentMethodsList"),
   categoryTemplate: document.querySelector("#categoryTemplate"),
   namedGoalTemplate: document.querySelector("#namedGoalTemplate"),
+  debtTemplate: document.querySelector("#debtTemplate"),
 };
 
 async function init() {
@@ -133,6 +157,8 @@ function bindEvents() {
   elements.goalForm.addEventListener("submit", saveCategoryGoal);
   elements.namedGoalForm.addEventListener("submit", saveNamedGoal);
   elements.cancelNamedGoalEdit.addEventListener("click", resetNamedGoalForm);
+  elements.debtForm.addEventListener("submit", saveDebt);
+  elements.cancelDebtEdit.addEventListener("click", resetDebtForm);
   elements.transactionForm.addEventListener("submit", addManualTransaction);
   elements.settingsForm.addEventListener("submit", saveSettings);
   elements.exportButton.addEventListener("click", exportData);
@@ -164,9 +190,12 @@ function logout() {
     transactions: [],
     goals: {},
     namedGoals: [],
+    debts: [],
     settings: { default_entered_by: "", default_payment_method: "", default_period_preset: "month" },
   };
   pendingImport = [];
+  editingDebtId = "";
+  editingNamedGoalId = "";
   selectedTransactions.clear();
   showLogin();
 }
@@ -346,6 +375,7 @@ function render() {
   renderTypeTotals(baseTransactions);
   renderCategoryGoals(baseTransactions);
   renderNamedGoals();
+  renderDebts();
   renderTransactions(filteredTransactions);
   updateDeleteButton();
 }
@@ -386,12 +416,12 @@ function renderCategoryGoals(transactions) {
     .filter((category) => totals[category] || state.goals[category] !== undefined);
 
   elements.categoryList.replaceChildren();
-  elements.goalSummary.textContent = `${Object.keys(state.goals).length} metas salvas`;
+  elements.goalSummary.textContent = `${Object.keys(state.goals).length} limites salvos`;
 
   if (!trackedCategories.length) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "Cadastre uma meta por categoria para acompanhar o consumo do periodo.";
+    empty.textContent = "Cadastre um limite por categoria para acompanhar o consumo do periodo.";
     elements.categoryList.append(empty);
     return;
   }
@@ -407,8 +437,8 @@ function renderCategoryGoals(transactions) {
     const remove = item.querySelector("button");
 
     heading.querySelector("strong").textContent = category;
-    heading.querySelector("span").textContent = goal > 0 ? `${Math.round(percent)}%` : "sem meta";
-    footer.querySelector("span").textContent = `${currency.format(spent)} de ${goal > 0 ? currency.format(goal) : "meta nao definida"}`;
+    heading.querySelector("span").textContent = goal > 0 ? `${Math.round(percent)}%` : "sem limite";
+    footer.querySelector("span").textContent = `${currency.format(spent)} de ${goal > 0 ? currency.format(goal) : "limite nao definido"}`;
     bar.style.width = `${percent}%`;
     bar.classList.toggle("warn", percent >= 80 && percent < 100);
     bar.classList.toggle("danger", goal > 0 && spent > goal);
@@ -427,6 +457,64 @@ function renderNamedGoals() {
   renderNamedGoalContainer(elements.namedGoalList, state.namedGoals, false);
   elements.namedGoalSummary.textContent = `${state.namedGoals.length} metas ativas`;
   elements.goalsPageSummary.textContent = `${state.namedGoals.length} metas cadastradas`;
+}
+
+function renderDebts() {
+  const activeDebts = state.debts.filter((debt) => debt.status !== "paid");
+  const total = sumDebtField(activeDebts, "current_balance");
+  const estimatedInterest = activeDebts.reduce((sum, debt) => sum + debt.current_balance * (debt.interest_rate / 100), 0);
+  const minimumPayments = sumDebtField(activeDebts, "minimum_payment");
+
+  elements.debtSummary.textContent = `${activeDebts.length} ativas, ${currency.format(total)} em aberto`;
+  elements.debtTotal.textContent = currency.format(total);
+  elements.debtInterestTotal.textContent = currency.format(estimatedInterest);
+  elements.debtMinimumTotal.textContent = currency.format(minimumPayments);
+  elements.debtActiveCount.textContent = String(activeDebts.length);
+  elements.debtsPageSummary.textContent = `${state.debts.length} dividas cadastradas`;
+
+  renderDebtContainer(elements.dashboardDebts, activeDebts.slice(0, 3), true);
+  renderDebtContainer(elements.debtList, state.debts, false);
+}
+
+function renderDebtContainer(container, debts, compact) {
+  container.replaceChildren();
+
+  if (!debts.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = compact
+      ? "As dividas ativas aparecem aqui assim que forem cadastradas."
+      : "Cadastre uma divida para acompanhar saldo, juros e vencimento.";
+    container.append(empty);
+    return;
+  }
+
+  debts.forEach((debt) => {
+    const item = elements.debtTemplate.content.firstElementChild.cloneNode(true);
+    const paid = Math.max(debt.original_amount - debt.current_balance, 0);
+    const progress = debt.original_amount > 0 ? Math.min((paid / debt.original_amount) * 100, 100) : 0;
+    const monthlyInterest = debt.current_balance * (debt.interest_rate / 100);
+
+    item.querySelector("strong").textContent = debt.name;
+    item.querySelector(".debt-creditor").textContent = debt.creditor || "Sem credor informado";
+    item.querySelector(".debt-status").textContent = debt.status === "paid" ? "Quitada" : "Ativa";
+    item.querySelector(".debt-status").classList.toggle("paid", debt.status === "paid");
+    item.querySelector(".progress-bar").style.width = `${progress}%`;
+    item.querySelector(".debt-balance").textContent = `Saldo: ${currency.format(debt.current_balance)}`;
+    item.querySelector(".debt-interest").textContent = `Juros: ${formatPercent(debt.interest_rate)} a.m. (${currency.format(monthlyInterest)})`;
+    item.querySelector(".debt-payment").textContent = `Minimo: ${currency.format(debt.minimum_payment)}`;
+    item.querySelector(".debt-due-day").textContent = debt.due_day ? `Vence dia ${debt.due_day}` : "Sem vencimento";
+    item.querySelector(".debt-notes").textContent = debt.notes || "Sem observacoes.";
+
+    item.querySelector('[data-action="edit"]').addEventListener("click", () => populateDebtForm(debt));
+    item.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+      if (!confirm(`Deseja excluir a divida "${debt.name}"?`)) return;
+      await api(`/api/debts/${encodeURIComponent(debt.id)}`, { method: "DELETE" });
+      await loadState();
+    });
+
+    container.append(item);
+  });
 }
 
 function renderNamedGoalContainer(container, goals, compact) {
@@ -744,6 +832,45 @@ async function saveCategoryGoal(event) {
   await loadState();
 }
 
+async function saveDebt(event) {
+  event.preventDefault();
+
+  const payload = {
+    name: elements.debtName.value.trim(),
+    creditor: elements.debtCreditor.value.trim(),
+    original_amount: Number(elements.debtOriginalAmount.value),
+    current_balance: Number(elements.debtCurrentBalance.value),
+    interest_rate: Number(elements.debtInterestRate.value || 0),
+    minimum_payment: Number(elements.debtMinimumPayment.value || 0),
+    due_day: elements.debtDueDay.value ? Number(elements.debtDueDay.value) : null,
+    status: elements.debtStatus.value,
+    notes: elements.debtNotes.value.trim(),
+  };
+
+  if (!payload.name || !Number.isFinite(payload.original_amount) || payload.original_amount < 0 || !Number.isFinite(payload.current_balance) || payload.current_balance < 0) {
+    return;
+  }
+
+  if (payload.due_day !== null && (!Number.isInteger(payload.due_day) || payload.due_day < 1 || payload.due_day > 31)) {
+    return;
+  }
+
+  if (editingDebtId) {
+    await api(`/api/debts/${encodeURIComponent(editingDebtId)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  } else {
+    await api("/api/debts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  resetDebtForm();
+  await loadState();
+}
+
 async function saveNamedGoal(event) {
   event.preventDefault();
 
@@ -795,6 +922,30 @@ function resetNamedGoalForm() {
   elements.cancelNamedGoalEdit.hidden = true;
 }
 
+function populateDebtForm(debt) {
+  editingDebtId = debt.id;
+  elements.debtId.value = debt.id;
+  elements.debtName.value = debt.name;
+  elements.debtCreditor.value = debt.creditor || "";
+  elements.debtOriginalAmount.value = debt.original_amount;
+  elements.debtCurrentBalance.value = debt.current_balance;
+  elements.debtInterestRate.value = debt.interest_rate;
+  elements.debtMinimumPayment.value = debt.minimum_payment;
+  elements.debtDueDay.value = debt.due_day || "";
+  elements.debtStatus.value = debt.status || "active";
+  elements.debtNotes.value = debt.notes || "";
+  elements.cancelDebtEdit.hidden = false;
+  setCurrentPage("debts");
+  elements.debtName.focus();
+}
+
+function resetDebtForm() {
+  editingDebtId = "";
+  elements.debtForm.reset();
+  elements.debtId.value = "";
+  elements.cancelDebtEdit.hidden = true;
+}
+
 async function saveSettings(event) {
   event.preventDefault();
 
@@ -830,9 +981,11 @@ async function exportData() {
 }
 
 async function resetSystemData() {
-  if (!confirm("Deseja apagar lancamentos, metas por categoria e metas nomeadas do sistema?")) return;
+  if (!confirm("Deseja apagar lancamentos, limites de gastos, metas e dividas do sistema?")) return;
   await api("/api/state", { method: "DELETE" });
   pendingImport = [];
+  editingDebtId = "";
+  editingNamedGoalId = "";
   selectedTransactions.clear();
   await loadState();
 }
@@ -881,6 +1034,14 @@ function expensesByCategory(transactions) {
 
 function sumAmounts(items) {
   return items.reduce((total, item) => total + Number(item.amount), 0);
+}
+
+function sumDebtField(debts, field) {
+  return debts.reduce((total, debt) => total + Number(debt[field] || 0), 0);
+}
+
+function formatPercent(value) {
+  return `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 async function api(path, options = {}) {

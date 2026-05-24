@@ -124,7 +124,8 @@ button.ghost:hover,
 .brand span,
 .topbar p,
 .settings-note,
-.named-goal-notes {
+.named-goal-notes,
+.debt-notes {
   color: var(--muted);
   margin: 0;
 }
@@ -253,7 +254,8 @@ button.ghost:hover,
 .panel,
 .metric,
 .type-card,
-.named-goal-card {
+.named-goal-card,
+.debt-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -313,6 +315,7 @@ textarea:focus {
 .cards,
 .type-filter,
 .named-goal-grid,
+.debt-grid,
 .category-list {
   display: grid;
   gap: 1rem;
@@ -384,6 +387,8 @@ td,
 .settings-actions,
 .named-goal-header,
 .named-goal-actions,
+.debt-header,
+.debt-actions,
 .category-heading,
 .category-footer {
   align-items: center;
@@ -419,12 +424,14 @@ td,
 }
 
 .category-list,
-.named-goal-grid {
+.named-goal-grid,
+.debt-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .category-item,
-.named-goal-card {
+.named-goal-card,
+.debt-card {
   background: var(--surface-2);
   border-radius: 14px;
   display: grid;
@@ -462,7 +469,38 @@ td,
   min-height: 2.4rem;
 }
 
+.debt-stats {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.debt-creditor,
+.debt-status,
+.debt-stats,
+.debt-notes {
+  color: var(--muted);
+}
+
+.debt-status {
+  background: rgba(194, 122, 28, 0.13);
+  border-radius: 999px;
+  color: var(--warning);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.28rem 0.55rem;
+}
+
+.debt-status.paid {
+  background: rgba(25, 129, 77, 0.12);
+  color: var(--ok);
+}
+
+.debt-notes {
+  min-height: 2.4rem;
+}
+
 .named-goal-actions button:last-child,
+.debt-actions button:last-child,
 .delete-row,
 .category-footer button {
   color: var(--danger);
@@ -573,6 +611,7 @@ code {
   .type-filter,
   .field-grid,
   .named-goal-grid,
+  .debt-grid,
   .category-list {
     grid-template-columns: 1fr;
   }
@@ -610,7 +649,8 @@ code {
   .panel,
   .metric,
   .type-card,
-  .named-goal-card {
+  .named-goal-card,
+  .debt-card {
     padding: 0.9rem;
   }
 
@@ -618,6 +658,8 @@ code {
   .toolbar-row,
   .named-goal-header,
   .named-goal-actions,
+  .debt-header,
+  .debt-actions,
   .category-heading,
   .category-footer {
     align-items: start;

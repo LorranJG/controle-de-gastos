@@ -16,6 +16,7 @@ module.exports = async function handler(req, res) {
     res.status(200).send(JSON.stringify({
       transactions: state.transactions,
       goals: state.goals,
+      monthlyGoals: state.monthlyGoals,
       namedGoals: state.namedGoals,
       debts: state.debts,
       settings: state.settings,

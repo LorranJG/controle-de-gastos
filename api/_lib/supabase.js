@@ -53,6 +53,15 @@ function normalizeNamedGoal(goal) {
   };
 }
 
+function normalizeMonthlyGoal(goal) {
+  return {
+    ...goal,
+    year: Number(goal.year),
+    month: Number(goal.month),
+    amount: Number(goal.amount),
+  };
+}
+
 function normalizeDebt(debt) {
   return {
     ...debt,
@@ -76,17 +85,20 @@ function defaultSettings() {
 }
 
 async function getState() {
-  const [transactions, goals, namedGoals, debts, settingsRows] = await Promise.all([
+  const [transactions, goals, monthlyGoals, namedGoals, debts, settingsRows] = await Promise.all([
     supabaseFetch("/transactions?select=*&order=date.desc,created_at.desc"),
     supabaseFetch("/goals?select=*&order=category.asc"),
+    supabaseFetch("/monthly_goals?select=*&order=year.desc,month.desc,category.asc"),
     supabaseFetch("/named_goals?select=*&order=created_at.desc"),
     supabaseFetch("/debts?select=*&order=created_at.desc"),
     supabaseFetch("/app_settings?select=*&id=eq.1"),
   ]);
   const transactionRows = (transactions || []).map(normalizeTransactionRecord);
   const goalRows = goals || [];
+  const monthlyGoalRows = (monthlyGoals || []).map(normalizeMonthlyGoal);
   const customCategories = [...new Set([
     ...goalRows.map((goal) => goal.category),
+    ...monthlyGoalRows.map((goal) => goal.category),
     ...transactionRows.map((transaction) => transaction.category),
   ].filter(Boolean))]
     .filter((category) => !CATEGORIES.includes(category))
@@ -96,6 +108,7 @@ async function getState() {
     categories: [...CATEGORIES, ...customCategories],
     transactions: transactionRows,
     goals: Object.fromEntries(goalRows.map((goal) => [goal.category, Number(goal.amount)])),
+    monthlyGoals: monthlyGoalRows,
     namedGoals: (namedGoals || []).map(normalizeNamedGoal),
     debts: (debts || []).map(normalizeDebt),
     settings: { ...defaultSettings(), ...((settingsRows || [])[0] || {}) },
@@ -106,6 +119,7 @@ module.exports = {
   defaultSettings,
   getState,
   normalizeDebt,
+  normalizeMonthlyGoal,
   normalizeNamedGoal,
   normalizeTransactionRecord,
   supabaseFetch,

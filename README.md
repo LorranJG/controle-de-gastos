@@ -39,6 +39,8 @@ Depois acesse `http://localhost:3000`.
 
 - SPA com paginas de Dashboard, Movimentacoes, Metas, Importar gastos e Configuracoes.
 - Criacao de categorias de gastos com limites planejados e acompanhamento de estouro.
+- Metas mensais por categoria, com valores diferentes por mes e ano.
+- Dashboard com filtros por ano, mes e categoria, tabela meta x gasto e visao anual.
 - Limites de gastos por categoria e metas nomeadas com progresso.
 - Tema claro e escuro.
 - Cadastro de dividas com saldo devedor, juros, pagamento minimo, vencimento e status.

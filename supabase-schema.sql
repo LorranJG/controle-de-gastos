@@ -34,6 +34,17 @@ create table if not exists public.goals (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.monthly_goals (
+  category text not null,
+  year integer not null,
+  month integer not null,
+  amount numeric(12, 2) not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (category, year, month),
+  constraint monthly_goals_month_check check (month between 1 and 12)
+);
+
 create table if not exists public.named_goals (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -75,6 +86,7 @@ on conflict (id) do nothing;
 
 alter table public.transactions enable row level security;
 alter table public.goals enable row level security;
+alter table public.monthly_goals enable row level security;
 alter table public.named_goals enable row level security;
 alter table public.debts enable row level security;
 alter table public.app_settings enable row level security;

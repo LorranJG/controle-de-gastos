@@ -5,6 +5,7 @@ let state = {
   categories: [],
   transactions: [],
   goals: {},
+  monthlyGoals: [],
   namedGoals: [],
   debts: [],
   settings: {
@@ -20,6 +21,20 @@ let pendingImport = [];
 let editingNamedGoalId = "";
 let editingDebtId = "";
 const selectedTransactions = new Set();
+const MONTHS = [
+  "Janeiro",
+  "Fevereiro",
+  "Marco",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
 
 const pageMeta = {
   dashboard: { title: "Dashboard", eyebrow: "Visao geral" },
@@ -67,6 +82,11 @@ const elements = {
   goalForm: document.querySelector("#goalForm"),
   goalCategory: document.querySelector("#goalCategory"),
   goalAmount: document.querySelector("#goalAmount"),
+  goalMonth: document.querySelector("#goalMonth"),
+  goalYear: document.querySelector("#goalYear"),
+  dashboardYear: document.querySelector("#dashboardYear"),
+  dashboardMonth: document.querySelector("#dashboardMonth"),
+  dashboardCategory: document.querySelector("#dashboardCategory"),
   namedGoalForm: document.querySelector("#namedGoalForm"),
   namedGoalId: document.querySelector("#namedGoalId"),
   namedGoalName: document.querySelector("#namedGoalName"),
@@ -90,10 +110,22 @@ const elements = {
   settingsTheme: document.querySelector("#settingsTheme"),
   exportButton: document.querySelector("#exportButton"),
   resetDataButton: document.querySelector("#resetDataButton"),
-  incomeTotal: document.querySelector("#incomeTotal"),
-  expenseTotal: document.querySelector("#expenseTotal"),
-  balanceTotal: document.querySelector("#balanceTotal"),
-  topCategory: document.querySelector("#topCategory"),
+  monthlySpentTotal: document.querySelector("#monthlySpentTotal"),
+  monthlyGoalTotal: document.querySelector("#monthlyGoalTotal"),
+  monthlyDifferenceTotal: document.querySelector("#monthlyDifferenceTotal"),
+  monthlyUsagePercent: document.querySelector("#monthlyUsagePercent"),
+  monthlyTableSummary: document.querySelector("#monthlyTableSummary"),
+  monthlyCategoryRows: document.querySelector("#monthlyCategoryRows"),
+  categoryChart: document.querySelector("#categoryChart"),
+  annualSummary: document.querySelector("#annualSummary"),
+  annualGoalTotal: document.querySelector("#annualGoalTotal"),
+  annualSpentTotal: document.querySelector("#annualSpentTotal"),
+  annualBalanceTotal: document.querySelector("#annualBalanceTotal"),
+  annualProjection: document.querySelector("#annualProjection"),
+  annualOverMonths: document.querySelector("#annualOverMonths"),
+  annualUnderMonths: document.querySelector("#annualUnderMonths"),
+  monthlyComparisonChart: document.querySelector("#monthlyComparisonChart"),
+  cumulativeChart: document.querySelector("#cumulativeChart"),
   goalSummary: document.querySelector("#goalSummary"),
   categoryList: document.querySelector("#categoryList"),
   debtSummary: document.querySelector("#debtSummary"),
@@ -150,6 +182,9 @@ function bindEvents() {
   elements.periodEnd.addEventListener("change", updatePeriod);
   elements.presetButtons.forEach((button) => button.addEventListener("click", applyPresetRange));
   elements.searchInput.addEventListener("input", render);
+  elements.dashboardYear.addEventListener("change", syncDashboardPeriod);
+  elements.dashboardMonth.addEventListener("change", syncDashboardPeriod);
+  elements.dashboardCategory.addEventListener("change", render);
   elements.filterCategory.addEventListener("change", render);
   elements.filterEnteredBy.addEventListener("change", render);
   elements.filterPaymentMethod.addEventListener("change", render);
@@ -193,6 +228,7 @@ function logout() {
     categories: [],
     transactions: [],
     goals: {},
+    monthlyGoals: [],
     namedGoals: [],
     debts: [],
     settings: { default_entered_by: "", default_payment_method: "", default_period_preset: "month" },
@@ -236,12 +272,59 @@ function setCurrentPage(page) {
 async function loadState() {
   state = await api("/api/state");
   ensurePeriods();
+  fillPeriodSelects();
   fillCategorySelect(elements.manualCategory, false);
   fillCategoryDataList();
+  fillDashboardFilters();
   fillTransactionFilters();
   fillDataLists();
   fillSettingsForm();
   fillDefaultsFromSettings();
+  render();
+}
+
+function fillPeriodSelects() {
+  const now = new Date();
+  const transactionYears = state.transactions.map((item) => Number(item.date.slice(0, 4)));
+  const goalYears = state.monthlyGoals.map((goal) => goal.year);
+  const years = [...new Set([now.getFullYear(), ...transactionYears, ...goalYears])]
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a);
+  const yearOptions = years.map((year) => {
+    const option = document.createElement("option");
+    option.value = String(year);
+    option.textContent = String(year);
+    return option;
+  });
+  const monthOptions = MONTHS.map((month, index) => {
+    const option = document.createElement("option");
+    option.value = String(index + 1);
+    option.textContent = month;
+    return option;
+  });
+
+  elements.dashboardYear.replaceChildren(...yearOptions.map((option) => option.cloneNode(true)));
+  elements.goalYear.replaceChildren(...yearOptions.map((option) => option.cloneNode(true)));
+  elements.dashboardMonth.replaceChildren(...monthOptions.map((option) => option.cloneNode(true)));
+  elements.goalMonth.replaceChildren(...monthOptions.map((option) => option.cloneNode(true)));
+
+  const savedYear = localStorage.getItem("dashboardYear") || String(now.getFullYear());
+  const savedMonth = localStorage.getItem("dashboardMonth") || String(now.getMonth() + 1);
+  elements.dashboardYear.value = years.includes(Number(savedYear)) ? savedYear : String(now.getFullYear());
+  elements.dashboardMonth.value = savedMonth;
+  elements.goalYear.value = elements.dashboardYear.value;
+  elements.goalMonth.value = elements.dashboardMonth.value;
+}
+
+function fillDashboardFilters() {
+  fillSelectWithValues(elements.dashboardCategory, ["", ...state.categories], "Todas");
+}
+
+function syncDashboardPeriod() {
+  localStorage.setItem("dashboardYear", elements.dashboardYear.value);
+  localStorage.setItem("dashboardMonth", elements.dashboardMonth.value);
+  elements.goalYear.value = elements.dashboardYear.value;
+  elements.goalMonth.value = elements.dashboardMonth.value;
   render();
 }
 
@@ -366,6 +449,7 @@ function uniqueValues(field) {
 }
 
 function render() {
+  const dashboardTransactions = dashboardFilteredTransactions();
   const baseTransactions = transactionsInPeriod(state.transactions)
     .filter((item) => !elements.filterCategory.value || item.category === elements.filterCategory.value)
     .filter((item) => !elements.filterEnteredBy.value || item.entered_by === elements.filterEnteredBy.value)
@@ -384,13 +468,24 @@ function render() {
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  renderMetrics(baseTransactions);
-  renderTypeTotals(baseTransactions);
-  renderCategoryGoals(baseTransactions);
+  renderMetrics(dashboardTransactions);
+  renderTypeTotals(dashboardTransactions);
+  renderCategoryGoals(dashboardTransactions);
+  renderMonthlyCategoryTable(dashboardTransactions);
+  renderCategoryChart(dashboardTransactions);
+  renderAnnualDashboard();
   renderNamedGoals();
   renderDebts();
   renderTransactions(filteredTransactions);
   updateDeleteButton();
+}
+
+function dashboardFilteredTransactions() {
+  const year = selectedDashboardYear();
+  const month = selectedDashboardMonth();
+  return state.transactions
+    .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
+    .filter((item) => !elements.dashboardCategory.value || item.category === elements.dashboardCategory.value);
 }
 
 function transactionsInPeriod(transactions) {
@@ -400,16 +495,17 @@ function transactionsInPeriod(transactions) {
 }
 
 function renderMetrics(transactions) {
-  const income = sumAmounts(transactions.filter((item) => item.movement_type === "income"));
   const expenses = Math.abs(sumAmounts(transactions.filter((item) => item.movement_type === "expense")));
-  const balance = income - expenses;
-  const categoryTotals = expensesByCategory(transactions);
-  const top = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+  const monthlyGoal = sumMonthlyGoals(selectedDashboardYear(), selectedDashboardMonth(), elements.dashboardCategory.value);
+  const difference = monthlyGoal - expenses;
+  const usage = monthlyGoal > 0 ? (expenses / monthlyGoal) * 100 : 0;
 
-  elements.incomeTotal.textContent = currency.format(income);
-  elements.expenseTotal.textContent = currency.format(expenses);
-  elements.balanceTotal.textContent = currency.format(balance);
-  elements.topCategory.textContent = top ? `${top[0]} (${currency.format(top[1])})` : "-";
+  elements.monthlySpentTotal.textContent = currency.format(expenses);
+  elements.monthlyGoalTotal.textContent = currency.format(monthlyGoal);
+  elements.monthlyDifferenceTotal.textContent = currency.format(difference);
+  elements.monthlyDifferenceTotal.className = difference >= 0 ? "income" : "expense";
+  elements.monthlyUsagePercent.textContent = monthlyGoal > 0 ? `${Math.round(usage)}%` : "Sem meta";
+  elements.monthlyUsagePercent.className = goalStatusClass(expenses, monthlyGoal);
 }
 
 function renderTypeTotals(transactions) {
@@ -425,11 +521,12 @@ function renderTypeTotals(transactions) {
 
 function renderCategoryGoals(transactions) {
   const totals = expensesByCategory(transactions);
-  const trackedCategories = [...new Set([...state.categories, ...Object.keys(state.goals)])]
-    .filter((category) => totals[category] || state.goals[category] !== undefined);
+  const year = selectedDashboardYear();
+  const month = selectedDashboardMonth();
+  const trackedCategories = monthlyCategories(totals, year, month);
 
   elements.categoryList.replaceChildren();
-  elements.goalSummary.textContent = `${Object.keys(state.goals).length} limites salvos`;
+  elements.goalSummary.textContent = `${MONTHS[month - 1]} de ${year}`;
 
   if (!trackedCategories.length) {
     const empty = document.createElement("p");
@@ -442,7 +539,7 @@ function renderCategoryGoals(transactions) {
   trackedCategories.forEach((category) => {
     const item = elements.categoryTemplate.content.firstElementChild.cloneNode(true);
     const spent = totals[category] || 0;
-    const goal = state.goals[category] ?? 0;
+    const goal = monthlyGoalFor(category, year, month);
     const percent = goal > 0 ? Math.min((spent / goal) * 100, 100) : 0;
     const heading = item.querySelector(".category-heading");
     const footer = item.querySelector(".category-footer");
@@ -453,16 +550,114 @@ function renderCategoryGoals(transactions) {
     heading.querySelector("span").textContent = goal > 0 ? `${Math.round(percent)}%` : "sem limite";
     footer.querySelector("span").textContent = `${currency.format(spent)} de ${goal > 0 ? currency.format(goal) : "limite nao definido"}`;
     bar.style.width = `${percent}%`;
-    bar.classList.toggle("warn", percent >= 80 && percent < 100);
-    bar.classList.toggle("danger", goal > 0 && spent > goal);
+    bar.classList.toggle("warn", goalStatusClass(spent, goal) === "warn");
+    bar.classList.toggle("danger", goalStatusClass(spent, goal) === "danger");
     remove.hidden = goal <= 0;
     remove.addEventListener("click", async () => {
-      await api(`/api/goals/${encodeURIComponent(category)}`, { method: "DELETE" });
+      await api(`/api/goals/${encodeURIComponent(category)}?year=${year}&month=${month}`, { method: "DELETE" });
       await loadState();
     });
 
     elements.categoryList.append(item);
   });
+}
+
+function renderMonthlyCategoryTable(transactions) {
+  const totals = expensesByCategory(transactions);
+  const year = selectedDashboardYear();
+  const month = selectedDashboardMonth();
+  const rows = monthlyCategories(totals, year, month);
+
+  elements.monthlyCategoryRows.replaceChildren();
+  elements.monthlyTableSummary.textContent = `${rows.length} categorias analisadas`;
+
+  if (!rows.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.className = "empty";
+    cell.textContent = "Nenhuma categoria com gasto ou meta para o periodo.";
+    row.append(cell);
+    elements.monthlyCategoryRows.append(row);
+    return;
+  }
+
+  rows.forEach((category) => {
+    const spent = totals[category] || 0;
+    const goal = monthlyGoalFor(category, year, month);
+    const difference = goal - spent;
+    const usage = goal > 0 ? (spent / goal) * 100 : 0;
+    const status = goalStatus(spent, goal);
+    const row = document.createElement("tr");
+    const cells = [
+      category,
+      currency.format(goal),
+      currency.format(spent),
+      currency.format(difference),
+      goal > 0 ? `${Math.round(usage)}%` : "Sem meta",
+      status.label,
+    ];
+
+    cells.forEach((value, index) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      cell.dataset.label = ["Categoria", "Meta mensal", "Gasto realizado", "Diferenca", "Uso", "Status"][index];
+      if (index === 5) cell.className = `status-text ${status.className}`;
+      row.append(cell);
+    });
+    elements.monthlyCategoryRows.append(row);
+  });
+}
+
+function renderCategoryChart(transactions) {
+  const totals = expensesByCategory(transactions);
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...entries.map(([, value]) => value), 1);
+
+  elements.categoryChart.replaceChildren();
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "Nenhum gasto no periodo selecionado.";
+    elements.categoryChart.append(empty);
+    return;
+  }
+
+  entries.forEach(([category, value]) => {
+    elements.categoryChart.append(createChartRow(category, currency.format(value), (value / max) * 100, "ok"));
+  });
+}
+
+function renderAnnualDashboard() {
+  const year = selectedDashboardYear();
+  const category = elements.dashboardCategory.value;
+  const months = Array.from({ length: 12 }, (_, index) => monthlySummary(year, index + 1, category));
+  const now = new Date();
+  const elapsedLimit = year < now.getFullYear() ? 12 : year > now.getFullYear() ? 0 : now.getMonth() + 1;
+  const elapsedMonths = months.filter((item) => item.month <= elapsedLimit && (item.spent > 0 || item.goal > 0));
+  const annualGoal = months.reduce((total, item) => total + item.goal, 0);
+  const annualSpent = months.reduce((total, item) => total + item.spent, 0);
+  const remaining = annualGoal - annualSpent;
+  const overMonths = elapsedMonths.filter((item) => item.goal > 0 && item.spent > item.goal).length;
+  const underMonths = elapsedMonths.filter((item) => item.goal > 0 && item.spent <= item.goal).length;
+  const averageSpent = elapsedMonths.length ? annualSpent / elapsedMonths.length : 0;
+  const projectedSpent = averageSpent * 12;
+  const projectionOver = annualGoal > 0 && projectedSpent > annualGoal;
+
+  elements.annualSummary.textContent = `${year}${category ? ` - ${category}` : ""}`;
+  elements.annualGoalTotal.textContent = currency.format(annualGoal);
+  elements.annualSpentTotal.textContent = currency.format(annualSpent);
+  elements.annualBalanceTotal.textContent = currency.format(remaining);
+  elements.annualBalanceTotal.className = remaining >= 0 ? "income" : "expense";
+  elements.annualProjection.textContent = annualGoal > 0
+    ? `${projectionOver ? "Ultrapassa" : "Dentro"} (${currency.format(projectedSpent)})`
+    : "Sem meta";
+  elements.annualProjection.className = projectionOver ? "expense" : "income";
+  elements.annualOverMonths.textContent = `${overMonths} meses com estouro`;
+  elements.annualUnderMonths.textContent = `${underMonths} meses com economia`;
+
+  renderMonthlyComparisonChart(months);
+  renderCumulativeChart(months);
 }
 
 function renderNamedGoals() {
@@ -835,11 +1030,13 @@ async function saveCategoryGoal(event) {
   event.preventDefault();
   const category = elements.goalCategory.value.trim();
   const amount = Number(elements.goalAmount.value);
-  if (!category || !Number.isFinite(amount) || amount < 0) return;
+  const year = Number(elements.goalYear.value);
+  const month = Number(elements.goalMonth.value);
+  if (!category || !Number.isFinite(amount) || amount < 0 || !Number.isInteger(year) || !Number.isInteger(month)) return;
 
   await api(`/api/goals/${encodeURIComponent(category)}`, {
     method: "PUT",
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, year, month }),
   });
 
   elements.goalCategory.value = "";
@@ -1053,6 +1250,137 @@ function expensesByCategory(transactions) {
     }
     return totals;
   }, {});
+}
+
+function selectedDashboardYear() {
+  return Number(elements.dashboardYear.value) || new Date().getFullYear();
+}
+
+function selectedDashboardMonth() {
+  return Number(elements.dashboardMonth.value) || new Date().getMonth() + 1;
+}
+
+function monthlyGoalFor(category, year, month) {
+  const monthlyGoal = state.monthlyGoals.find((goal) => goal.category === category && goal.year === year && goal.month === month);
+  return monthlyGoal ? monthlyGoal.amount : Number(state.goals[category] || 0);
+}
+
+function sumMonthlyGoals(year, month, category = "") {
+  const categories = category ? [category] : [...new Set([...state.categories, ...state.monthlyGoals.map((goal) => goal.category)])];
+  return categories.reduce((total, item) => total + monthlyGoalFor(item, year, month), 0);
+}
+
+function monthlyCategories(totals, year, month) {
+  return [...new Set([
+    ...Object.keys(totals),
+    ...state.monthlyGoals.filter((goal) => goal.year === year && goal.month === month).map((goal) => goal.category),
+    ...Object.keys(state.goals),
+  ])]
+    .filter((category) => !elements.dashboardCategory.value || category === elements.dashboardCategory.value)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function monthlySummary(year, month, category = "") {
+  const transactions = state.transactions
+    .filter((item) => item.movement_type === "expense")
+    .filter((item) => item.date.startsWith(`${year}-${String(month).padStart(2, "0")}`))
+    .filter((item) => !category || item.category === category);
+
+  return {
+    month,
+    goal: sumMonthlyGoals(year, month, category),
+    spent: Math.abs(sumAmounts(transactions)),
+  };
+}
+
+function goalStatus(spent, goal) {
+  if (goal <= 0) return { label: "Sem meta", className: "muted" };
+  if (spent > goal) return { label: "Ultrapassado", className: "danger" };
+  if (spent >= goal * 0.85) return { label: "Proximo do limite", className: "warn" };
+  return { label: "Dentro da meta", className: "ok" };
+}
+
+function goalStatusClass(spent, goal) {
+  return goalStatus(spent, goal).className;
+}
+
+function createChartRow(label, value, percent, statusClass) {
+  const row = document.createElement("div");
+  row.className = "chart-row";
+  const meta = document.createElement("div");
+  const name = document.createElement("strong");
+  const amount = document.createElement("span");
+  const track = document.createElement("div");
+  const bar = document.createElement("div");
+
+  meta.className = "chart-row-meta";
+  name.textContent = label;
+  amount.textContent = value;
+  track.className = "chart-track";
+  bar.className = `chart-bar ${statusClass}`;
+  bar.style.width = `${Math.min(Math.max(percent, 2), 100)}%`;
+
+  meta.append(name, amount);
+  track.append(bar);
+  row.append(meta, track);
+  return row;
+}
+
+function renderMonthlyComparisonChart(months) {
+  const max = Math.max(...months.flatMap((item) => [item.goal, item.spent]), 1);
+  elements.monthlyComparisonChart.replaceChildren();
+  months.forEach((item) => {
+    const status = goalStatusClass(item.spent, item.goal);
+    elements.monthlyComparisonChart.append(createDualChartRow(
+      MONTHS[item.month - 1].slice(0, 3),
+      currency.format(item.goal),
+      currency.format(item.spent),
+      (item.goal / max) * 100,
+      (item.spent / max) * 100,
+      status,
+    ));
+  });
+}
+
+function renderCumulativeChart(months) {
+  let goalTotal = 0;
+  let spentTotal = 0;
+  const cumulative = months.map((item) => {
+    goalTotal += item.goal;
+    spentTotal += item.spent;
+    return { month: item.month, goal: goalTotal, spent: spentTotal };
+  });
+  const max = Math.max(...cumulative.flatMap((item) => [item.goal, item.spent]), 1);
+  elements.cumulativeChart.replaceChildren();
+  cumulative.forEach((item) => {
+    elements.cumulativeChart.append(createDualChartRow(
+      `${MONTHS[item.month - 1].slice(0, 3)} acum.`,
+      currency.format(item.goal),
+      currency.format(item.spent),
+      (item.goal / max) * 100,
+      (item.spent / max) * 100,
+      item.spent > item.goal ? "danger" : "ok",
+    ));
+  });
+}
+
+function createDualChartRow(label, goalLabel, spentLabel, goalPercent, spentPercent, statusClass) {
+  const row = document.createElement("div");
+  row.className = "dual-chart-row";
+  const title = document.createElement("strong");
+  const bars = document.createElement("div");
+  const goal = document.createElement("div");
+  const spent = document.createElement("div");
+
+  title.textContent = label;
+  bars.className = "dual-chart-bars";
+  goal.className = "chart-track goal-track";
+  spent.className = "chart-track";
+  goal.innerHTML = `<div class="chart-bar plan" style="width:${Math.min(Math.max(goalPercent, 2), 100)}%"></div><span>${goalLabel}</span>`;
+  spent.innerHTML = `<div class="chart-bar ${statusClass}" style="width:${Math.min(Math.max(spentPercent, 2), 100)}%"></div><span>${spentLabel}</span>`;
+  bars.append(goal, spent);
+  row.append(title, bars);
+  return row;
 }
 
 function sumAmounts(items) {

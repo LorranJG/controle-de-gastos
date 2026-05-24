@@ -3,34 +3,44 @@
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   --bg: #edf2f1;
   --surface: #ffffff;
-  --surface-2: #f5f8f7;
-  --surface-3: #e8efed;
-  --text: #16302b;
-  --muted: #5f736f;
-  --line: #cfdbd7;
-  --accent: #0b7a69;
-  --accent-dark: #075f52;
-  --danger: #bd3a28;
-  --warning: #c27a1c;
-  --ok: #19814d;
-  --shadow: 0 18px 45px rgba(17, 40, 35, 0.08);
+  --surface-2: #f4f8f7;
+  --surface-3: #e5eeeb;
+  --text: #10231f;
+  --muted: #60736e;
+  --line: #cbdad5;
+  --accent: #087563;
+  --accent-dark: #075e50;
+  --danger: #c2412f;
+  --danger-bg: #fff0ed;
+  --danger-line: #f2b8ae;
+  --warning: #b76b10;
+  --warning-bg: #fff7e8;
+  --ok: #147b48;
+  --ok-bg: #eaf7ef;
+  --accent-soft: #e8f5f2;
+  --shadow: 0 18px 45px rgba(16, 35, 31, 0.08);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111816;
-  --surface: #17211e;
-  --surface-2: #1d2a26;
-  --surface-3: #263630;
-  --text: #ecf5f2;
-  --muted: #a8bbb5;
-  --line: #334740;
-  --accent: #31b89f;
-  --accent-dark: #43c9b0;
-  --danger: #ff8a78;
-  --warning: #f2b35b;
-  --ok: #61d394;
-  --shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+  --bg: #0f1715;
+  --surface: #16201d;
+  --surface-2: #1c2925;
+  --surface-3: #2a3b35;
+  --text: #f0f7f4;
+  --muted: #a8bbb4;
+  --line: #344941;
+  --accent: #45c4ac;
+  --accent-dark: #67d8c2;
+  --danger: #ff8f7e;
+  --danger-bg: #3a211f;
+  --danger-line: #8a4038;
+  --warning: #f0b75f;
+  --warning-bg: #332818;
+  --ok: #6fd89c;
+  --ok-bg: #173326;
+  --accent-soft: #17352f;
+  --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -68,7 +78,7 @@ button,
   border: 0;
   border-radius: 10px;
   background: var(--accent);
-  color: white;
+  color: #ffffff;
   cursor: pointer;
   font-weight: 700;
   min-height: 44px;
@@ -88,8 +98,8 @@ button:active,
 
 button:disabled,
 button:disabled:hover {
-  background: #dce5e2;
-  color: #7f908a;
+  background: var(--surface-3);
+  color: var(--muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -104,7 +114,7 @@ button.ghost,
 
 button.ghost:hover,
 .nav-link:hover {
-  background: rgba(11, 122, 105, 0.08);
+  background: var(--accent-soft);
 }
 
 .file-button {
@@ -212,8 +222,8 @@ button.ghost:hover,
 }
 
 .nav-link.active {
-  background: rgba(11, 122, 105, 0.13);
-  border-color: rgba(11, 122, 105, 0.35);
+  background: var(--accent-soft);
+  border-color: var(--accent);
   color: var(--accent-dark);
 }
 
@@ -331,7 +341,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(11, 122, 105, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   outline: 0;
 }
 
@@ -366,8 +376,8 @@ textarea:focus {
 
 .type-card:hover,
 .type-card.active {
-  background: rgba(11, 122, 105, 0.08);
-  border-color: rgba(11, 122, 105, 0.35);
+  background: var(--accent-soft);
+  border-color: var(--accent);
   color: var(--text);
 }
 
@@ -393,19 +403,19 @@ td,
 }
 
 .metric:first-child {
-  border-top: 4px solid rgba(25, 129, 77, 0.28);
+  border-top: 4px solid color-mix(in srgb, var(--ok) 45%, transparent);
 }
 
 .metric:nth-child(2) {
-  border-top: 4px solid rgba(189, 58, 40, 0.24);
+  border-top: 4px solid color-mix(in srgb, var(--danger) 42%, transparent);
 }
 
 .metric:nth-child(3) {
-  border-top: 4px solid rgba(11, 122, 105, 0.32);
+  border-top: 4px solid color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .metric:nth-child(4) {
-  border-top: 4px solid rgba(194, 122, 28, 0.25);
+  border-top: 4px solid color-mix(in srgb, var(--warning) 45%, transparent);
 }
 
 .section-title,
@@ -609,7 +619,7 @@ strong.expense,
 }
 
 .debt-status {
-  background: rgba(194, 122, 28, 0.13);
+  background: var(--warning-bg);
   border-radius: 999px;
   color: var(--warning);
   font-size: 0.78rem;
@@ -618,7 +628,7 @@ strong.expense,
 }
 
 .debt-status.paid {
-  background: rgba(25, 129, 77, 0.12);
+  background: var(--ok-bg);
   color: var(--ok);
 }
 
@@ -630,6 +640,20 @@ strong.expense,
 .debt-actions button:last-child,
 .delete-row,
 .category-footer button {
+  color: var(--danger);
+}
+
+.named-goal-actions button:last-child,
+.debt-actions button:last-child,
+.category-footer button {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+}
+
+.named-goal-actions button:last-child:hover,
+.debt-actions button:last-child:hover,
+.category-footer button:hover {
+  background: color-mix(in srgb, var(--danger-bg) 72%, var(--danger) 28%);
   color: var(--danger);
 }
 
@@ -698,7 +722,7 @@ td input[type="text"] {
 }
 
 code {
-  background: rgba(11, 122, 105, 0.08);
+  background: var(--accent-soft);
   border-radius: 6px;
   padding: 0.12rem 0.32rem;
 }
